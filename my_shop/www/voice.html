@@ -1,0 +1,367 @@
+{% extends "templates/base.html" %}
+{% block title %}{{ shop_name }} · Voice Billing{% endblock %}
+{% block navbar %}{% endblock %}
+{% block footer %}{% endblock %}
+
+{% block content %}
+<style>
+  :root {
+    --paper: #f7f1e6; --card: #fffdf8; --ink: #241c14; --muted: #8a7a63;
+    --line: #e5dbc6; --line-soft: #efe6d5;
+    --accent: #b8461e; --accent-dark: #8f350f; --ok: #4f6b3c; --warn: #b8461e;
+    --serif: Georgia, "Iowan Old Style", "Palatino Linotype", "URW Palladio", ui-serif, serif;
+    --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink);
+         font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+         background-image:
+           radial-gradient(circle at 1px 1px, rgba(36,28,20,.05) 1px, transparent 0);
+         background-size: 18px 18px; }
+  .wrap { max-width: 560px; margin: 0 auto; padding: 32px 20px 72px; }
+  h1 { font-family: var(--serif); font-size: 26px; font-weight: 700; margin: 0 0 4px;
+       letter-spacing: -.01em; }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 28px; font-style: italic; }
+  .card { background: var(--card); border: 1px solid var(--line);
+          border-radius: 18px; padding: 26px 24px; margin-bottom: 18px;
+          box-shadow: 0 1px 2px rgba(36,28,20,.04), 0 8px 24px -12px rgba(36,28,20,.12); }
+
+  .mic { width: 108px; height: 108px; border-radius: 50%; border: none;
+         background: linear-gradient(160deg, var(--accent), var(--accent-dark));
+         color: #fff; font-size: 40px; cursor: pointer;
+         display: grid; place-items: center; margin: 4px auto 16px;
+         box-shadow: 0 8px 22px -6px rgba(184,70,30,.55); transition: transform .12s; }
+  .mic:active { transform: scale(.95); }
+  .mic.live { background: linear-gradient(160deg, #d94f2b, #a63a17); animation: pulse 1.2s infinite; }
+  @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(217,79,43,.45); }
+                     50% { box-shadow: 0 0 0 18px rgba(217,79,43,0); } }
+  .hint { text-align: center; color: var(--muted); font-size: 13px; min-height: 20px; }
+
+  label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase;
+          letter-spacing: .08em; color: var(--muted); margin-bottom: 10px; }
+  textarea { width: 100%; min-height: 84px; padding: 14px 16px; font-size: 17px;
+             border: 1px solid var(--line); border-radius: 12px; resize: vertical;
+             font-family: inherit; background: #fff; color: var(--ink); }
+  textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
+
+  .btn { width: 100%; padding: 16px; font-size: 16px; font-weight: 700;
+         font-family: var(--serif); letter-spacing: .01em;
+         border: none; border-radius: 12px; background: var(--ink); color: #fdf9f0;
+         cursor: pointer; margin-top: 16px; }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  .btn.ghost { background: #fff; color: var(--ink); border: 1px solid var(--line); }
+
+  .q { font-weight: 700; font-family: var(--mono); }
+  .heard { color: var(--muted); font-size: 12px; font-style: italic; margin-top: 2px; }
+  .miss { color: var(--warn); font-size: 13px; margin-top: 10px; }
+  .ok { color: var(--ok); font-weight: 700; font-family: var(--serif); font-size: 19px; }
+  .invno { font-family: var(--mono); color: var(--muted); font-size: 12px;
+        letter-spacing: .02em; margin: 4px 0 18px; }
+  .row-actions { display: flex; gap: 10px; margin-top: 16px; }
+  .row-actions .btn { margin-top: 0; }
+  .err { color: #a6341c; font-size: 14px; margin-top: 12px; white-space: pre-wrap; }
+
+  /* A CSS-grid table. Header and body rows share one grid-template, so columns
+     can never drift apart the way <table> layout does with dynamic content. */
+  .gridcols { --cols: 56px 1fr 68px 84px 28px; }
+  .ghead, .grow { display: grid; grid-template-columns: var(--cols); gap: 10px; align-items: center; }
+  .ghead { font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
+        color: var(--muted); font-weight: 700; padding: 0 0 16px; }
+  .grow { padding: 18px 0; border-top: 1px dashed var(--line); }
+  /* A short item name leaves empty space before the price columns. Filling it
+     with a dotted leader (menu/receipt convention) reads as designed, not broken. */
+  .gname { min-width: 0; overflow-wrap: anywhere; display: flex; align-items: baseline;
+        gap: 8px; }
+  .gname::after { content: ""; flex: 1 1 auto; min-width: 12px; align-self: flex-end;
+        border-bottom: 2px dotted var(--line); margin-bottom: 5px; }
+  .gr-result { --cols: 44px 1fr 80px 92px; }
+  .ar { text-align: right; }
+  .gcell input { width: 100%; padding: 10px; font-size: 15px; font-family: var(--mono);
+        border: 1px solid var(--line); border-radius: 9px; background: #fff;
+        color: var(--ink); -moz-appearance: textfield; }
+  .gcell input::-webkit-outer-spin-button,
+  .gcell input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .gcell input.r { text-align: right; }
+  .amt { text-align: right; font-family: var(--mono); font-weight: 600; }
+  .del { border: none; background: none; color: var(--muted); font-size: 22px;
+        line-height: 1; cursor: pointer; padding: 4px; }
+  .del:hover { color: #a6341c; }
+  .total { display: flex; justify-content: space-between; align-items: baseline;
+        margin-top: 18px; padding-top: 18px; border-top: 2px solid var(--ink);
+        font-family: var(--serif); font-weight: 700; font-size: 19px; }
+  .total span:last-child { font-family: var(--mono); }
+  .muted { color: var(--muted); font-size: 14px; padding: 8px 0; }
+
+  .add { border: 1px dashed #c98a4f; background: #fbf0dd; border-radius: 12px;
+         padding: 16px; margin-top: 14px; }
+  .addhead { font-size: 13px; color: var(--accent-dark); margin-bottom: 12px; font-weight: 600; }
+  .addrow { display: grid; grid-template-columns: 1fr 90px 100px auto; gap: 8px; }
+  .addrow input, .addrow select { padding: 10px; font-size: 14px; border: 1px solid var(--line);
+         border-radius: 9px; background: #fff; color: var(--ink); font-family: inherit; min-width: 0; }
+  .mini { padding: 10px 16px; font-size: 14px; font-weight: 700; border: none;
+          border-radius: 9px; background: var(--accent); color: #fff; cursor: pointer; }
+  .mini:disabled { opacity: .5; cursor: default; }
+  @media (max-width: 460px) { .addrow { grid-template-columns: 1fr 1fr; } }
+</style>
+
+<div class="wrap">
+  <h1>{{ shop_name }}</h1>
+  <div class="sub">Speak the order. It becomes an invoice.</div>
+
+  <div class="card">
+    <button id="mic" class="mic" aria-label="Start listening">🎙</button>
+    <div class="hint" id="hint">Tap and say “five nut bolt and three screw”</div>
+  </div>
+
+  <div class="card">
+    <label for="tx">What we heard</label>
+    <textarea id="tx" placeholder="…or just type the order here"></textarea>
+    <button id="go" class="btn">Create Invoice</button>
+    <div class="err" id="err"></div>
+  </div>
+
+  <div class="card" id="out" style="display:none"></div>
+</div>
+
+<script>
+const CSRF = "{{ csrf_token }}";
+const LANG = "{{ speech_lang }}";
+const $ = (id) => document.getElementById(id);
+
+async function call(method, args) {
+  const res = await fetch("/api/method/my_shop.api." + method, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Frappe-CSRF-Token": CSRF },
+    body: JSON.stringify(args),
+  });
+  const body = await res.json();
+  if (!res.ok) {
+    const messages = JSON.parse(body._server_messages || "[]")
+      .map((m) => JSON.parse(m).message);
+    throw new Error(messages.join("\n") || body.exception || "Request failed");
+  }
+  return body.message;
+}
+
+/* ---- speech ---- */
+const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recogniser = null;
+
+if (!Recognition) {
+  $("hint").textContent = "Voice needs Chrome. Type the order instead.";
+  $("mic").disabled = true;
+  $("mic").style.opacity = .4;
+} else {
+  recogniser = new Recognition();
+  recogniser.lang = LANG;
+  recogniser.interimResults = true;
+  recogniser.continuous = false;
+
+  recogniser.onstart = () => {
+    $("mic").classList.add("live");
+    $("hint").textContent = "Listening…";
+  };
+  recogniser.onresult = (event) => {
+    let text = "";
+    for (const result of event.results) text += result[0].transcript;
+    $("tx").value = text;
+  };
+  recogniser.onerror = (event) => {
+    $("hint").textContent = "Mic error: " + event.error + ". Type it instead.";
+  };
+  recogniser.onend = () => {
+    $("mic").classList.remove("live");
+    if ($("hint").textContent === "Listening…") $("hint").textContent = "Tap to speak again";
+  };
+
+  $("mic").onclick = () => {
+    $("err").textContent = "";
+    if ($("mic").classList.contains("live")) return recogniser.stop();
+    $("tx").value = "";
+    try { recogniser.start(); } catch (e) { /* already running */ }
+  };
+}
+
+/* ---- create ---- */
+let lastTranscript = "";
+let lastInvoice = null;
+
+function esc(v) {
+  return String(v).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+}
+function money(n) { return "₹" + (Number(n) || 0).toFixed(2); }
+function busy(on, label) {
+  $("go").disabled = on;
+  $("go").textContent = on ? (label || "Working…") : "Create Invoice";
+}
+function panelError(message) {
+  const slot = $("out").querySelector('[data-slot="err"]');
+  if (slot) slot.textContent = message; else $("err").textContent = message;
+}
+
+$("go").onclick = async () => {
+  const transcript = $("tx").value.trim();
+  $("err").textContent = "";
+  if (!transcript) { $("err").textContent = "Say or type an order first."; return; }
+  lastTranscript = transcript;
+  busy(true, "Checking…");
+  try {
+    renderEditor(await call("preview", { transcript }));
+  } catch (e) {
+    $("err").textContent = e.message;
+  } finally {
+    busy(false);
+  }
+};
+
+/* The bill is edited here, not in Desk. Quantities and rates are live inputs,
+   rows can be dropped, and whatever is on screen is what gets billed. */
+function renderEditor(review) {
+  const uoms = review.uoms.map((u) => `<option>${esc(u)}</option>`).join("");
+
+  const lines = review.rows.map((r) => `
+    <div class="grow gridcols row" data-code="${esc(r.item_code)}">
+      <div class="gcell"><input class="q" type="number" min="0" step="1" value="${r.qty}"></div>
+      <div class="gname">${esc(r.item_name)}</div>
+      <div class="gcell"><input class="r" type="number" min="0" step="0.01" value="${Number(r.rate) || 0}"></div>
+      <div class="amt">0.00</div>
+      <div><button class="del" data-act="del" title="Remove">&times;</button></div>
+    </div>`).join("");
+
+  const grid = review.rows.length
+    ? `<div class="ghead gridcols"><div>Qty</div><div>Item</div><div class="ar">Rate</div><div class="ar">Amount</div><div></div></div>
+       ${lines}
+       <div class="total"><span>Total</span><span data-slot="total">0.00</span></div>`
+    : `<div class="muted">Nothing recognised yet.</div>`;
+
+  const missing = review.unmatched.map((u, n) => `
+    <div class="add" data-i="${n}">
+      <div class="addhead">${u.qty} × “${esc(u.phrase)}” is not in your items yet</div>
+      <div class="addrow">
+        <input class="newname" value="${esc(u.phrase)}" placeholder="Item name">
+        <input class="rt" type="number" min="0" step="0.01" placeholder="Rate">
+        <select class="um">${uoms}</select>
+        <button class="mini" data-act="add">Add</button>
+      </div>
+    </div>`).join("");
+
+  $("out").innerHTML = grid + missing + `
+    <button class="btn" data-act="create">Create Invoice</button>
+    <div class="err" data-slot="err"></div>`;
+  $("out").style.display = "block";
+  recalc();
+  $("out").scrollIntoView({ behavior: "smooth" });
+}
+
+function recalc() {
+  let total = 0;
+  $("out").querySelectorAll(".row").forEach((tr) => {
+    const amount = (Number(tr.querySelector(".q").value) || 0) * (Number(tr.querySelector(".r").value) || 0);
+    total += amount;
+    tr.querySelector(".amt").textContent = money(amount);
+  });
+  const slot = $("out").querySelector('[data-slot="total"]');
+  if (slot) slot.textContent = money(total);
+  const create = $("out").querySelector('[data-act="create"]');
+  if (create) create.disabled = collectRows().length === 0;
+}
+
+function collectRows() {
+  return [...$("out").querySelectorAll(".row")].map((tr) => ({
+    item_code: tr.dataset.code,
+    qty: Number(tr.querySelector(".q").value) || 0,
+    rate: Number(tr.querySelector(".r").value) || 0,
+  })).filter((r) => r.qty > 0);
+}
+
+$("out").addEventListener("input", recalc);
+
+$("out").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-act]");
+  if (!button) return;
+  const act = button.dataset.act;
+  if (act === "add") quickAdd(button);
+  if (act === "del") { button.closest(".row").remove(); recalc(); }
+  if (act === "create") confirmCreate();
+  if (act === "print") window.open(lastInvoice.print_url, "_blank");
+  if (act === "edit") location.href = lastInvoice.url;
+  if (act === "new") newOrder();
+});
+
+async function quickAdd(button) {
+  const box = button.closest(".add");
+  const item_name = box.querySelector(".newname").value.trim();
+  if (!item_name) { panelError("Give the item a name first."); return; }
+
+  button.disabled = true;
+  button.textContent = "…";
+  panelError("");
+  try {
+    await call("add_item", {
+      item_name,
+      rate: Number(box.querySelector(".rt").value) || 0,
+      uom: box.querySelector(".um").value,
+    });
+    // re-match, but keep any edits already made to the rows on screen
+    const edited = collectRows();
+    const review = await call("preview", { transcript: lastTranscript });
+    review.rows.forEach((r) => {
+      const prev = edited.find((e) => e.item_code === r.item_code);
+      if (prev) { r.qty = prev.qty; r.rate = prev.rate; }
+    });
+    renderEditor(review);
+  } catch (e) {
+    panelError(e.message);
+    button.disabled = false;
+    button.textContent = "Add";
+  }
+}
+
+async function confirmCreate() {
+  const rows = collectRows();
+  if (!rows.length) { panelError("Nothing to bill."); return; }
+  busy(true, "Creating…");
+  try {
+    renderInvoice(await call("create_invoice", { rows: JSON.stringify(rows) }));
+  } catch (e) {
+    panelError(e.message);
+  } finally {
+    busy(false);
+  }
+}
+
+function renderInvoice(result) {
+  lastInvoice = result;
+  const body = result.rows.map((r) => `
+    <div class="grow gridcols gr-result">
+      <div class="q">${r.qty}</div><div class="gname">${esc(r.item_name)}</div>
+      <div class="ar">${money(r.rate)}</div><div class="ar">${money(r.amount)}</div>
+    </div>`).join("");
+
+  $("out").innerHTML = `
+    <div class="ok">✓ Order billed</div>
+    <div class="invno">${esc(result.name)}</div>
+    <div class="ghead gridcols gr-result"><div>Qty</div><div>Item</div><div class="ar">Rate</div><div class="ar">Amount</div></div>
+    ${body}
+    <div class="total"><span>Total</span><span>${money(result.grand_total)}</span></div>
+    <div class="row-actions">
+      <button class="btn" data-act="new">New order</button>
+      <button class="btn ghost" data-act="print">Print</button>
+    </div>
+    <div class="err" data-slot="err"></div>`;
+  $("out").style.display = "block";
+  $("out").scrollIntoView({ behavior: "smooth" });
+}
+
+function newOrder() {
+  lastTranscript = "";
+  lastInvoice = null;
+  $("tx").value = "";
+  $("err").textContent = "";
+  $("out").style.display = "none";
+  $("out").innerHTML = "";
+  $("hint").textContent = "Tap and say the next order";
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+</script>
+{% endblock %}

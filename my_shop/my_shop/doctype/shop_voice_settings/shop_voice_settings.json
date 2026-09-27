@@ -1,0 +1,79 @@
+{
+ "actions": [],
+ "creation": "2026-09-04 09:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "shop_name",
+  "company",
+  "default_customer",
+  "column_break_1",
+  "item_group",
+  "speech_lang"
+ ],
+ "fields": [
+  {
+   "fieldname": "shop_name",
+   "fieldtype": "Data",
+   "label": "Shop Name",
+   "default": "My Shop"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "default_customer",
+   "fieldtype": "Link",
+   "label": "Default Customer",
+   "options": "Customer",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "item_group",
+   "fieldtype": "Link",
+   "label": "Limit Items To Group",
+   "options": "Item Group",
+   "description": "Optional. Only match items in this group."
+  },
+  {
+   "fieldname": "speech_lang",
+   "fieldtype": "Select",
+   "label": "Speech Language",
+   "options": "en-IN\nhi-IN\nen-US\nen-GB",
+   "default": "en-IN"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-09-04 09:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "My Shop",
+ "name": "Shop Voice Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
