@@ -2,110 +2,113 @@
 {% block title %}{{ invoice.name }} · {{ shop_name }}{% endblock %}
 {% block navbar %}{% endblock %}
 {% block footer %}{% endblock %}
+{% block style %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400&family=JetBrains+Mono:wght@400..800&display=swap">
+<link rel="stylesheet" href="/assets/my_shop/css/shop.css?v={{ build_version }}">
+{% endblock %}
 
 {% block content %}
 <style>
-  :root {
-    --paper: #f7f1e6; --card: #fffdf8; --ink: #241c14; --muted: #8a7a63;
-    --line: #e5dbc6; --accent: #b8461e; --accent-dark: #8f350f; --ok: #4f6b3c;
-    --serif: Georgia, "Iowan Old Style", "Palatino Linotype", ui-serif, serif;
-    --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+  .ms-bar { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 22px; }
+  .ms-bar .ms-btn { min-height: 48px; font-size: 15px; }
+
+  .ms-paper { filter: drop-shadow(0 1px 1px rgba(35,26,18,.05)) drop-shadow(0 14px 22px rgba(35,26,18,.16));
+        animation: ms-rise .4s ease both; }
+  .ms-receipt { background: var(--sheet); border-radius: var(--radius) var(--radius) 0 0;
+        padding: 34px 30px 26px; }
+  .ms-teeth { height: 12px; background: radial-gradient(circle at 9px 0, var(--sheet) 8.5px, transparent 9px) 0 0 / 18px 12px repeat-x; }
+
+  .ms-rhead { display: flex; align-items: center; gap: 16px; padding-bottom: 22px; margin-bottom: 22px;
+        border-bottom: 1px dashed var(--line); }
+  .ms-rhead .ms-logo { width: 56px; height: 56px; font-size: 26px; }
+
+  .ms-meta { display: grid; grid-template-columns: 1fr auto; gap: 14px; margin-bottom: 26px; font-size: 13px; }
+  .ms-meta .ms-k { display: block; color: var(--muted); font-size: 10.5px; font-weight: 700;
+        text-transform: uppercase; letter-spacing: .1em; margin-bottom: 4px; }
+  .ms-meta .ms-v { color: var(--ink); font-weight: 600; font-size: 15px; }
+  .ms-meta .ms-right { text-align: right; }
+  .ms-meta .ms-invno { font: 500 13px/1.4 var(--mono); color: var(--ink); }
+  .ms-meta .ms-date { color: var(--muted); margin-top: 2px; }
+
+  .ms-items { --cols: 36px 1fr 80px 92px; }
+  .ms-items .ms-grow { align-items: baseline; font-size: 14.5px; }
+  .ms-items .ms-mono { font-size: 14px; }
+
+  .ms-foot { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 26px; }
+  .ms-thanks { color: var(--muted); font: italic 400 14px/1.4 var(--serif); margin: 0; }
+  .ms-foot .ms-stamp { font-size: 16px; padding: 8px 18px 7px; animation: ms-stamp-in .5s cubic-bezier(.2,.9,.3,1.2) .35s both; }
+
+  @media (max-width: 480px) {
+    .ms-receipt { padding: 26px 18px 22px; }
+    .ms-items { --cols: 26px 1fr 84px; }
+    .ms-items .ms-rate { display: none; }
+    .ms-items .ms-sub { display: block; }
   }
-  * { box-sizing: border-box; }
-  body { margin: 0; background: var(--paper); color: var(--ink);
-         font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-  .wrap { max-width: 560px; margin: 0 auto; padding: 32px 20px 72px; }
-
-  .bar { display: flex; gap: 10px; margin-bottom: 20px; }
-  .bar a, .bar button { flex: 1; text-align: center; padding: 12px; border-radius: 10px;
-        font-size: 14px; font-weight: 600; text-decoration: none; cursor: pointer;
-        border: 1px solid var(--line); background: #fff; color: var(--ink); }
-  .bar .primary { background: var(--ink); color: #fdf9f0; border-color: var(--ink); }
-
-  .card { background: var(--card); border: 1px solid var(--line); border-radius: 18px;
-          padding: 32px 28px; box-shadow: 0 1px 2px rgba(36,28,20,.04), 0 8px 24px -12px rgba(36,28,20,.12); }
-
-  .head { display: flex; align-items: center; gap: 16px; padding-bottom: 20px;
-        border-bottom: 2px solid var(--ink); margin-bottom: 20px; }
-  .mark { width: 56px; height: 56px; border-radius: 50%; flex: none;
-        background: linear-gradient(160deg, var(--accent), var(--accent-dark)); color: #fff;
-        display: grid; place-items: center; font-family: var(--serif); font-size: 24px; font-weight: 700; }
-  .shopname { font-family: var(--serif); font-size: 24px; font-weight: 700; margin: 0; }
-  .tag { color: var(--muted); font-size: 12px; font-style: italic; margin-top: 2px; }
-
-  .meta { display: flex; justify-content: space-between; margin-bottom: 22px;
-        font-size: 13px; color: var(--muted); gap: 12px; }
-  .meta b { color: var(--ink); }
-  .meta .right { text-align: right; }
-  .invno { font-family: var(--mono); font-size: 12px; }
-
-  .items { width: 100%; }
-  .ihead, .irow { display: grid; grid-template-columns: 40px 1fr 72px 84px; gap: 10px; align-items: baseline; }
-  .ihead { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted);
-        padding-bottom: 8px; border-bottom: 1px dashed var(--line); }
-  .irow { padding: 10px 0; border-bottom: 1px dashed var(--line); font-size: 14px; }
-  .ar { text-align: right; }
-  .mono { font-family: var(--mono); }
-
-  .total { display: flex; justify-content: space-between; align-items: baseline;
-        margin-top: 14px; padding-top: 14px; border-top: 2px solid var(--ink);
-        font-family: var(--serif); font-size: 19px; font-weight: 700; }
-
-  .stamp { display: inline-block; margin-top: 18px; padding: 6px 16px;
-        border: 2px solid var(--ok); color: var(--ok); font-weight: 700; letter-spacing: .1em;
-        transform: rotate(-4deg); font-size: 13px; }
-  .foot { margin-top: 28px; text-align: center; color: var(--muted); font-size: 12px; font-style: italic; }
+  .ms-sub { display: none; color: var(--muted); font: 12px/1.4 var(--mono); margin-top: 2px; }
 
   @media print {
-    body { background: #fff; }
-    .bar { display: none; }
-    .card { box-shadow: none; border: none; padding: 0; }
-    .wrap { padding: 0; max-width: none; }
+    :root { --sheet: #fff; --ink: #000; --muted: #555; --line: #bbb; --ok: #000; }
+    body { background: #fff !important; }
+    .ms-bar { display: none; }
+    .ms-wrap { padding: 0; max-width: none; }
+    .ms-paper { filter: none; animation: none; }
+    .ms-receipt { padding: 0; }
+    .ms-teeth { display: none; }
+    .ms-logo { background: none; color: #000; border: 2px solid #000; box-shadow: none; }
+    .ms-foot .ms-stamp { animation: none; opacity: 1; }
   }
 </style>
 
-<div class="wrap">
-  <div class="bar">
-    <a href="/voice">← Back to Billing</a>
-    <button class="primary" onclick="window.print()">Print</button>
-  </div>
+<div class="ms-wrap">
+  <nav class="ms-bar">
+    <a class="ms-btn ghost" href="/voice">← Back to billing</a>
+    <button class="ms-btn" onclick="window.print()">Print</button>
+  </nav>
 
-  <div class="card">
-    <div class="head">
-      <div class="mark">{{ mark }}</div>
-      <div>
-        <p class="shopname">{{ shop_name }}</p>
-        <div class="tag">Retail Invoice</div>
+  <article class="ms-paper">
+    <div class="ms-receipt">
+      <header class="ms-rhead">
+        <div class="ms-logo">{{ mark }}</div>
+        <div>
+          <h1 class="ms-title">{{ shop_name }}</h1>
+          <p class="ms-tag">Retail invoice</p>
+        </div>
+      </header>
+
+      <div class="ms-meta">
+        <div>
+          <span class="ms-k">Billed to</span>
+          <span class="ms-v">{{ invoice.customer_name or invoice.customer }}</span>
+        </div>
+        <div class="ms-right">
+          <span class="ms-k">Invoice</span>
+          <div class="ms-invno">{{ invoice.name }}</div>
+          <div class="ms-date">{{ frappe.utils.formatdate(invoice.posting_date) }}</div>
+        </div>
       </div>
-    </div>
 
-    <div class="meta">
-      <div>Billed to<br><b>{{ invoice.customer_name or invoice.customer }}</b></div>
-      <div class="right">
-        <div class="invno">{{ invoice.name }}</div>
-        {{ frappe.utils.formatdate(invoice.posting_date) }}
+      <div class="ms-items">
+        <div class="ms-ghead"><div>Qty</div><div>Item</div><div class="ms-ar ms-rate">Rate</div><div class="ms-ar">Amount</div></div>
+        {% for item in invoice.items %}
+        <div class="ms-grow">
+          <div class="ms-mono">{{ item.qty | int }}</div>
+          <div class="ms-gname">{{ item.item_name }}<span class="ms-sub">@ ₹{{ "%.2f"|format(item.rate) }}</span></div>
+          <div class="ms-ar ms-mono ms-rate">₹{{ "%.2f"|format(item.rate) }}</div>
+          <div class="ms-ar ms-mono">₹{{ "%.2f"|format(item.amount) }}</div>
+        </div>
+        {% endfor %}
       </div>
+
+      <div class="ms-total"><span>Total</span><span class="ms-mono">₹{{ "%.2f"|format(invoice.grand_total) }}</span></div>
+
+      <footer class="ms-foot">
+        <p class="ms-thanks">Thank you for shopping with us</p>
+        {% if is_paid %}<div class="ms-stamp">Paid</div>{% endif %}
+      </footer>
     </div>
-
-    <div class="items">
-      <div class="ihead"><div>Qty</div><div>Item</div><div class="ar">Rate</div><div class="ar">Amount</div></div>
-      {% for item in invoice.items %}
-      <div class="irow">
-        <div class="mono">{{ item.qty | int }}</div>
-        <div>{{ item.item_name }}</div>
-        <div class="ar mono">₹{{ "%.2f"|format(item.rate) }}</div>
-        <div class="ar mono">₹{{ "%.2f"|format(item.amount) }}</div>
-      </div>
-      {% endfor %}
-    </div>
-
-    <div class="total"><span>Total</span><span class="mono">₹{{ "%.2f"|format(invoice.grand_total) }}</span></div>
-
-    {% if is_paid %}
-    <div class="stamp">PAID</div>
-    {% endif %}
-
-    <div class="foot">Thank you for shopping with us</div>
-  </div>
+    <div class="ms-teeth"></div>
+  </article>
 </div>
 {% endblock %}
