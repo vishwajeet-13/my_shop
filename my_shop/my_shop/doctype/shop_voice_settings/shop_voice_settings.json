@@ -10,7 +10,11 @@
   "default_customer",
   "column_break_1",
   "item_group",
-  "speech_lang"
+  "speech_lang",
+  "section_payments",
+  "upi_id",
+  "column_break_2",
+  "taxes_and_charges"
  ],
  "fields": [
   {
@@ -50,12 +54,34 @@
    "label": "Speech Language",
    "options": "en-IN\nhi-IN\nen-US\nen-GB",
    "default": "en-IN"
+  },
+  {
+   "fieldname": "section_payments",
+   "fieldtype": "Section Break",
+   "label": "Payments & Tax"
+  },
+  {
+   "fieldname": "upi_id",
+   "fieldtype": "Data",
+   "label": "UPI ID",
+   "description": "e.g. myshop@okaxis. Shown as a QR code on bills and in WhatsApp reminders."
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "taxes_and_charges",
+   "fieldtype": "Link",
+   "label": "Sales Tax Template",
+   "options": "Sales Taxes and Charges Template",
+   "description": "Applied to every voice bill. Leave empty for no tax."
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-09-04 09:00:00.000000",
+ "modified": "2026-09-28 02:23:05.161183",
  "modified_by": "Administrator",
  "module": "My Shop",
  "name": "Shop Voice Settings",

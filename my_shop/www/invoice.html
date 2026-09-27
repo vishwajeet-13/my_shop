@@ -40,6 +40,11 @@
   .ms-thanks { color: var(--muted); font: italic 400 14px/1.4 var(--serif); margin: 0; }
   .ms-foot .ms-stamp { font-size: 16px; padding: 8px 18px 7px; animation: ms-stamp-in .5s cubic-bezier(.2,.9,.3,1.2) .35s both; }
 
+  .ms-sumline { display: flex; justify-content: space-between; padding: 8px 0 0; color: var(--ink-soft); font-size: 14px; }
+  .ms-pending { color: var(--danger); font-weight: 700; padding-top: 12px; }
+  .ms-qr { text-align: center; color: var(--muted); font-size: 13px; margin-top: 16px; }
+  .ms-qr svg { width: 170px; height: 170px; background: #fff; border-radius: 8px; padding: 4px; }
+
   @media (max-width: 480px) {
     .ms-receipt { padding: 26px 18px 22px; }
     .ms-items { --cols: 26px 1fr 84px; }
@@ -101,8 +106,14 @@
         {% endfor %}
       </div>
 
+      {% if invoice.discount_amount %}<div class="ms-sumline"><span>Discount</span><span class="ms-mono">−₹{{ "%.2f"|format(invoice.discount_amount) }}</span></div>{% endif %}
+      {% for tax in invoice.taxes %}<div class="ms-sumline"><span>{{ tax.description }}</span><span class="ms-mono">₹{{ "%.2f"|format(tax.tax_amount_after_discount_amount) }}</span></div>{% endfor %}
       <div class="ms-total"><span>Total</span><span class="ms-mono">₹{{ "%.2f"|format(invoice.grand_total) }}</span></div>
 
+      {% if invoice.outstanding_amount > 0 %}
+      <div class="ms-sumline ms-pending"><span>Pending (udhaar)</span><span class="ms-mono">₹{{ "%.2f"|format(invoice.outstanding_amount) }}</span></div>
+      {% if upi_qr %}<div class="ms-qr">{{ upi_qr }}<div>Scan to pay by UPI</div></div>{% endif %}
+      {% endif %}
       <footer class="ms-foot">
         <p class="ms-thanks">Thank you for shopping with us</p>
         {% if is_paid %}<div class="ms-stamp">Paid</div>{% endif %}

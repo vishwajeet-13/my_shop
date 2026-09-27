@@ -1,5 +1,7 @@
 import frappe
 
+from my_shop.payments import upi_link, upi_qr_svg
+
 no_cache = 1
 
 
@@ -22,5 +24,7 @@ def get_context(context):
 	context.shop_name = shop_name
 	context.mark = shop_name[0].upper()
 	context.is_paid = invoice.status == "Paid"
+	link = upi_link(invoice.outstanding_amount, invoice.name) if invoice.outstanding_amount > 0 else None
+	context.upi_qr = upi_qr_svg(link) if link else None
 	context.no_cache = 1
 	return context

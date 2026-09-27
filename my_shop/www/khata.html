@@ -1,0 +1,158 @@
+{% extends "templates/base.html" %}
+{% block title %}Khata · {{ shop_name }}{% endblock %}
+{% block navbar %}{% endblock %}
+{% block footer %}{% endblock %}
+{% block style %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400&family=JetBrains+Mono:wght@400..800&display=swap">
+<link rel="stylesheet" href="/assets/my_shop/css/shop.css?v={{ build_version }}">
+{% endblock %}
+
+{% block content %}
+<style>
+  .ms-head { display: flex; align-items: center; gap: 14px; margin: 0 0 22px; }
+  .ms-nav { margin-left: auto; color: var(--accent); font-weight: 600; text-decoration: none; white-space: nowrap; }
+  .ms-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .ms-stat { padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--field); }
+  .ms-stat b { display: block; font: 700 20px/1.2 var(--mono); color: var(--ink); }
+  .ms-stat span { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+  .ms-list { display: grid; gap: 0; }
+  .ms-item { padding: 14px 0; border-bottom: 1px dashed var(--line); }
+  .ms-item:last-child { border-bottom: none; }
+  .ms-itemtop { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .ms-who b { color: var(--ink); }
+  .ms-who small { display: block; color: var(--muted); }
+  .ms-due { color: var(--danger); font: 700 17px/1.2 var(--mono); white-space: nowrap; }
+  .ms-acts { display: grid; grid-template-columns: 1fr 90px auto auto; gap: 6px; margin-top: 10px; }
+  .ms-field { width: 100%; padding: 9px 10px; font-size: 14px; border: 1px solid var(--line);
+        border-radius: 10px; background: var(--field); color: var(--ink); font-family: inherit; min-width: 0; }
+  .ms-mini { padding: 9px 14px; font-size: 14px; font-weight: 700; border: none; border-radius: 10px;
+        background: var(--accent); color: var(--on-accent); cursor: pointer; text-decoration: none; text-align: center; }
+  .ms-mini.ghost { background: var(--field); color: var(--ok); border: 1px solid var(--line); }
+  .ms-mini:disabled { opacity: .5; }
+  .ms-bill { display: flex; justify-content: space-between; gap: 10px; padding: 10px 0;
+        border-bottom: 1px dashed var(--line); color: var(--ink); text-decoration: none; }
+  .ms-bill small { color: var(--muted); }
+  .ms-muted { color: var(--muted); font-style: italic; }
+  .ms-err { color: var(--danger); font-size: 14px; margin-top: 8px; white-space: pre-wrap; }
+  .ms-err:empty { display: none; }
+  .ms-okmsg { color: var(--ok); font-size: 14px; margin-top: 8px; }
+  h2.ms-label { margin-bottom: 12px; }
+  @media (max-width: 480px) { .ms-acts { grid-template-columns: 1fr 1fr; } }
+</style>
+
+<div class="ms-wrap">
+  <header class="ms-head">
+    <div class="ms-logo">{{ shop_name[0] | upper }}</div>
+    <div>
+      <h1 class="ms-title">Khata</h1>
+      <p class="ms-tag">{{ shop_name }} · today's sales and udhaar</p>
+    </div>
+    <a class="ms-nav" href="/voice">← Billing</a>
+  </header>
+
+  <section class="ms-sheet">
+    <h2 class="ms-label">Today</h2>
+    <div class="ms-stats" id="stats"><div class="ms-muted">Loading…</div></div>
+  </section>
+
+  <section class="ms-sheet">
+    <h2 class="ms-label">Who owes you</h2>
+    <div class="ms-list" id="dues"><div class="ms-muted">Loading…</div></div>
+    <div class="ms-err" id="err"></div>
+  </section>
+
+  <section class="ms-sheet">
+    <h2 class="ms-label">Today's bills</h2>
+    <div id="recent"><div class="ms-muted">Loading…</div></div>
+  </section>
+</div>
+
+<script>
+const CSRF = "{{ csrf_token }}";
+const $ = (id) => document.getElementById(id);
+
+async function call(method, args) {
+  const res = await fetch("/api/method/my_shop.khata." + method, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Frappe-CSRF-Token": CSRF },
+    body: JSON.stringify(args || {}),
+  });
+  const body = await res.json();
+  if (!res.ok) {
+    const messages = JSON.parse(body._server_messages || "[]").map((m) => JSON.parse(m).message);
+    throw new Error(messages.join("\n") || body.exception || "Request failed");
+  }
+  return body.message;
+}
+
+function esc(v) {
+  return String(v ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+}
+function money(n) { return "₹" + (Number(n) || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+
+let dueRows = [];
+
+async function loadSummary() {
+  const s = await call("today_summary");
+  const collected = s.collected || {};
+  $("stats").innerHTML = [
+    ["Bills", s.bills],
+    ["Sales", money(s.total)],
+    ["Cash in", money(collected.Cash)],
+    ["UPI in", money(collected.UPI)],
+    ["Given on udhaar", money(s.on_credit)],
+    ["Other in", money(Object.entries(collected).filter(([k]) => k !== "Cash" && k !== "UPI").reduce((a, [, v]) => a + v, 0))],
+  ].map(([label, value]) => `<div class="ms-stat"><b>${typeof value === "number" ? value : value}</b><span>${label}</span></div>`).join("");
+  $("recent").innerHTML = s.recent.length
+    ? s.recent.map((b) => `
+      <a class="ms-bill" href="/invoice?name=${encodeURIComponent(b.name)}">
+        <span>${esc(b.customer_name)}<br><small>${esc(b.name)} · ${esc(b.status)}</small></span>
+        <span class="ms-mono">${money(b.grand_total)}</span>
+      </a>`).join("")
+    : `<div class="ms-muted">No bills yet today.</div>`;
+}
+
+async function loadDues() {
+  dueRows = await call("dues");
+  $("dues").innerHTML = dueRows.length
+    ? dueRows.map((d, i) => `
+      <div class="ms-item" data-i="${i}">
+        <div class="ms-itemtop">
+          <div class="ms-who"><b>${esc(d.customer_name)}</b>
+            <small>${d.mobile_no ? esc(d.mobile_no) + " · " : ""}${d.days ? `oldest ${d.days} day${d.days === 1 ? "" : "s"}` : "since today"}</small></div>
+          <div class="ms-due">${money(d.due)}</div>
+        </div>
+        <div class="ms-acts">
+          <input class="ms-field amt" type="number" min="0" step="1" value="${d.due}" aria-label="Amount received">
+          <select class="ms-field mode" aria-label="Paid by"><option>Cash</option><option>UPI</option></select>
+          <button class="ms-mini" data-act="receive">Received</button>
+          <a class="ms-mini ghost" href="${esc(d.reminder_url)}" target="_blank" rel="noopener">Remind</a>
+        </div>
+        <div class="ms-err" data-slot="err"></div>
+      </div>`).join("")
+    : `<div class="ms-muted">Nobody owes you anything. 🎉</div>`;
+}
+
+$("dues").addEventListener("click", async (event) => {
+  const button = event.target.closest('[data-act="receive"]');
+  if (!button) return;
+  const row = button.closest(".ms-item");
+  const d = dueRows[Number(row.dataset.i)];
+  const amount = Number(row.querySelector(".amt").value) || 0;
+  const slot = row.querySelector('[data-slot="err"]');
+  slot.textContent = "";
+  button.disabled = true;
+  try {
+    await call("receive_payment", { customer: d.name, amount, mode: row.querySelector(".mode").value });
+    await Promise.all([loadDues(), loadSummary()]);
+  } catch (e) {
+    slot.textContent = e.message;
+    button.disabled = false;
+  }
+});
+
+Promise.all([loadSummary(), loadDues()]).catch((e) => { $("err").textContent = e.message; });
+</script>
+{% endblock %}

@@ -105,6 +105,34 @@
     .ms-done .ms-rate { display: none; }
     .ms-addrow { grid-template-columns: 1fr 1fr; }
   }
+
+  .ms-checkout { margin-top: 20px; padding-top: 16px; border-top: 1px dashed var(--line); }
+  .ms-checkout .ms-label { margin-top: 14px; }
+  .ms-field { width: 100%; padding: 11px 12px; font-size: 15px; border: 1px solid var(--line);
+        border-radius: 10px; background: var(--field); color: var(--ink); font-family: inherit; min-width: 0; }
+  .ms-found { display: grid; gap: 6px; margin-top: 6px; }
+  .ms-found:empty { display: none; }
+  .ms-hit { text-align: left; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px;
+        background: var(--field); color: var(--ink); cursor: pointer; font: inherit; }
+  .ms-hit:hover { border-color: var(--accent); }
+  .ms-newcust { display: grid; grid-template-columns: 1fr 1fr auto; gap: 6px; }
+  .ms-picked { display: flex; align-items: center; justify-content: space-between; gap: 8px;
+        padding: 8px 8px 8px 12px; border: 1px solid var(--accent); border-radius: 10px; background: var(--accent-wash); }
+  .ms-due { color: var(--danger); font-weight: 600; }
+  .ms-modes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .ms-mode { padding: 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--field);
+        color: var(--ink); font-weight: 600; cursor: pointer; }
+  .ms-mode.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .ms-payrow { display: grid; grid-template-columns: auto 120px; align-items: center; gap: 12px; margin-top: 14px; }
+  .ms-payrow .ms-label { margin: 0; }
+  .ms-sumline { display: flex; justify-content: space-between; padding: 8px 0 0; color: var(--ink-soft); }
+  .ms-payable { font: 600 18px/1.3 var(--serif); color: var(--ink); }
+  .ms-qr { text-align: center; color: var(--muted); font-size: 13px; margin-top: 12px; }
+  .ms-qr:empty { display: none; }
+  .ms-qr svg { width: 180px; height: 180px; background: #fff; border-radius: 8px; padding: 4px; }
+  .ms-paidnote { margin: 12px 0 0; color: var(--ink-soft); }
+  .ms-wa { margin-top: 10px; }
+  .ms-nav { margin-left: auto; color: var(--accent); font-weight: 600; text-decoration: none; white-space: nowrap; }
 </style>
 
 <div class="ms-wrap">
@@ -114,6 +142,7 @@
       <h1 class="ms-title">{{ shop_name }}</h1>
       <p class="ms-tag">Speak the order. It becomes an invoice.</p>
     </div>
+    <a class="ms-nav" href="/khata">Khata →</a>
   </header>
 
   <section class="ms-sheet ms-stage">
@@ -146,7 +175,8 @@ const LANG = "{{ speech_lang }}";
 const $ = (id) => document.getElementById(id);
 
 async function call(method, args) {
-  const res = await fetch("/api/method/my_shop.api." + method, {
+  const path = method.includes(".") ? method : "my_shop.api." + method;
+  const res = await fetch("/api/method/" + path, {
     method: "POST",
     headers: { "Content-Type": "application/json", "X-Frappe-CSRF-Token": CSRF },
     body: JSON.stringify(args),
@@ -269,12 +299,120 @@ function renderEditor(review) {
       </div>
     </div>`).join("");
 
-  $("out").innerHTML = grid + missing + `
+  $("out").innerHTML = grid + missing + checkoutHtml() + `
     <button class="ms-btn" data-act="create">Create Invoice</button>
     <div class="ms-err" data-slot="err"></div>`;
   $("out").style.display = "block";
   recalc();
   $("out").scrollIntoView({ behavior: "smooth" });
+}
+
+const checkout = { customer: null, mode: "Cash", discount: 0, payable: 0 };
+let foundCustomers = [];
+let searchTimer = null;
+let qrKey = "";
+
+function checkoutHtml() {
+  const c = checkout.customer;
+  const who = c
+    ? `<div class="ms-picked"><span><b>${esc(c.customer_name)}</b>${c.mobile_no ? " · " + esc(c.mobile_no) : ""}${c.due ? ` · <span class="ms-due">owes ${money(c.due)}</span>` : ""}</span>
+         <button class="ms-del" data-act="unpick" title="Walk-in customer" aria-label="Clear customer">&times;</button></div>`
+    : `<input class="ms-custq ms-field" placeholder="Walk-in · search name or phone" autocomplete="off">
+       <div class="ms-found" data-slot="found"></div>`;
+  const modes = ["Cash", "UPI", "Udhaar"].map((m) =>
+    `<button type="button" class="ms-mode${m === checkout.mode ? " on" : ""}" data-act="mode" data-mode="${m}">${m}</button>`).join("");
+  return `
+    <div class="ms-checkout">
+      <label class="ms-label">Customer</label>
+      ${who}
+      <label class="ms-label">Payment</label>
+      <div class="ms-modes">${modes}</div>
+      <div class="ms-payrow">
+        <label class="ms-label" for="discount">Discount ₹</label>
+        <input id="discount" class="ms-discount ms-field" type="number" min="0" step="1" value="${checkout.discount || ""}" placeholder="0">
+      </div>
+      <div class="ms-sumline ms-payable"><span>To pay</span><span class="ms-mono" data-slot="payable">0.00</span></div>
+      <div class="ms-qr" data-slot="qr"></div>
+    </div>`;
+}
+
+function rerenderCheckout() {
+  const box = $("out").querySelector(".ms-checkout");
+  if (!box) return;
+  box.outerHTML = checkoutHtml();
+  qrKey = "";
+  recalc();
+}
+
+function setMode(mode) {
+  checkout.mode = mode;
+  panelError(mode === "Udhaar" && !checkout.customer ? "Pick or add the customer for udhaar." : "");
+  rerenderCheckout();
+}
+
+function pickCustomer(customer) {
+  checkout.customer = customer || null;
+  foundCustomers = [];
+  panelError("");
+  rerenderCheckout();
+}
+
+function searchCustomers(text) {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(async () => {
+    const slot = $("out").querySelector('[data-slot="found"]');
+    if (!slot) return;
+    const query = text.trim();
+    if (!query) { slot.innerHTML = ""; return; }
+    try {
+      foundCustomers = await call("my_shop.khata.find_customers", { query });
+    } catch (e) { panelError(e.message); return; }
+    const isPhone = /^[+\d\s]{6,}$/.test(query);
+    slot.innerHTML = foundCustomers.map((c, i) => `
+      <button type="button" class="ms-hit" data-act="pick" data-i="${i}">
+        <b>${esc(c.customer_name)}</b> ${c.mobile_no ? esc(c.mobile_no) : ""}
+        ${c.due ? `<span class="ms-due">owes ${money(c.due)}</span>` : ""}
+      </button>`).join("") + `
+      <div class="ms-newcust">
+        <input class="nc-name ms-field" placeholder="New customer name" value="${isPhone ? "" : esc(query)}">
+        <input class="nc-mobile ms-field" placeholder="Mobile" inputmode="tel" value="${isPhone ? esc(query) : ""}">
+        <button type="button" class="ms-mini" data-act="newcust">Add</button>
+      </div>`;
+  }, 250);
+}
+
+async function saveCustomer(button) {
+  const box = button.closest(".ms-newcust");
+  const customer_name = box.querySelector(".nc-name").value.trim();
+  if (!customer_name) { panelError("Give the customer a name."); return; }
+  button.disabled = true;
+  try {
+    pickCustomer(await call("my_shop.khata.add_customer", {
+      customer_name, mobile_no: box.querySelector(".nc-mobile").value.trim(),
+    }));
+  } catch (e) {
+    panelError(e.message);
+    button.disabled = false;
+  }
+}
+
+function refreshQr() {
+  const slot = $("out").querySelector('[data-slot="qr"]');
+  if (!slot) return;
+  if (checkout.mode !== "UPI" || !checkout.payable) { slot.innerHTML = ""; qrKey = ""; return; }
+  const key = checkout.payable.toFixed(2);
+  if (key === qrKey) return;
+  qrKey = key;
+  clearTimeout(refreshQr.timer);
+  refreshQr.timer = setTimeout(async () => {
+    try {
+      const qr = await call("upi_qr", { amount: checkout.payable, note: "Bill" });
+      if (qrKey !== key) return;
+      slot.innerHTML = qr
+        ? qr.svg + `<div>Customer scans to pay ${money(checkout.payable)}</div>`
+        : `<div class="ms-muted">Add your UPI ID in Shop Voice Settings to show a pay QR.</div>`;
+    } catch (e) { slot.innerHTML = ""; }
+  }, 300);
 }
 
 function recalc() {
@@ -286,6 +424,12 @@ function recalc() {
   });
   const slot = $("out").querySelector('[data-slot="total"]');
   if (slot) slot.textContent = money(total);
+  const discountBox = $("out").querySelector(".ms-discount");
+  checkout.discount = discountBox ? Math.max(Number(discountBox.value) || 0, 0) : 0;
+  checkout.payable = Math.max(total - checkout.discount, 0);
+  const payable = $("out").querySelector('[data-slot="payable"]');
+  if (payable) payable.textContent = money(checkout.payable);
+  refreshQr();
   const create = $("out").querySelector('[data-act="create"]');
   if (create) create.disabled = collectRows().length === 0;
 }
@@ -298,7 +442,11 @@ function collectRows() {
   })).filter((r) => r.qty > 0);
 }
 
-$("out").addEventListener("input", recalc);
+$("out").addEventListener("input", (event) => {
+  if (event.target.classList.contains("ms-custq")) return searchCustomers(event.target.value);
+  if (event.target.closest(".ms-newcust")) return;
+  recalc();
+});
 
 $("out").addEventListener("click", (event) => {
   const button = event.target.closest("[data-act]");
@@ -310,6 +458,10 @@ $("out").addEventListener("click", (event) => {
   if (act === "print") window.open(lastInvoice.print_url, "_blank");
   if (act === "edit") location.href = lastInvoice.url;
   if (act === "new") newOrder();
+  if (act === "mode") setMode(button.dataset.mode);
+  if (act === "pick") pickCustomer(foundCustomers[Number(button.dataset.i)]);
+  if (act === "unpick") pickCustomer(null);
+  if (act === "newcust") saveCustomer(button);
 });
 
 async function quickAdd(button) {
@@ -346,7 +498,12 @@ async function confirmCreate() {
   if (!rows.length) { panelError("Nothing to bill."); return; }
   busy(true, "Creating…");
   try {
-    renderInvoice(await call("create_invoice", { rows: JSON.stringify(rows) }));
+    renderInvoice(await call("create_invoice", {
+      rows: JSON.stringify(rows),
+      customer: checkout.customer ? checkout.customer.name : null,
+      payment_mode: checkout.mode,
+      discount: checkout.discount,
+    }));
   } catch (e) {
     panelError(e.message);
   } finally {
@@ -369,17 +526,33 @@ function renderInvoice(result) {
     </div>
     <div class="ms-ghead ms-done"><div>Qty</div><div>Item</div><div class="ms-ar ms-rate">Rate</div><div class="ms-ar">Amount</div></div>
     ${body}
+    ${result.discount ? `<div class="ms-sumline"><span>Discount</span><span class="ms-mono">−${money(result.discount)}</span></div>` : ""}
+    ${result.taxes ? `<div class="ms-sumline"><span>Tax</span><span class="ms-mono">${money(result.taxes)}</span></div>` : ""}
     <div class="ms-total"><span>Total</span><span class="ms-mono">${money(result.grand_total)}</span></div>
+    <p class="ms-paidnote">${esc(result.customer_name)} · ${result.outstanding > 0
+      ? `<b class="ms-due">Udhaar ${money(result.outstanding)} pending</b>`
+      : `Paid by ${esc(checkout.mode)}`}</p>
+    ${result.upi_link ? `<div class="ms-qr" data-slot="billqr"></div>` : ""}
     <div class="ms-actions">
       <button class="ms-btn" data-act="new">New order</button>
       <button class="ms-btn ghost" data-act="print">Print</button>
     </div>
+    <a class="ms-btn ghost ms-wa" href="${esc(result.whatsapp_url)}" target="_blank" rel="noopener">Share bill on WhatsApp</a>
     <div class="ms-err" data-slot="err"></div>`;
   $("out").style.display = "block";
   $("out").scrollIntoView({ behavior: "smooth" });
+  if (result.upi_link) {
+    call("upi_qr", { amount: result.outstanding, note: result.name }).then((qr) => {
+      const slot = $("out").querySelector('[data-slot="billqr"]');
+      if (qr && slot) slot.innerHTML = qr.svg + `<div>Scan to pay ${money(result.outstanding)} by UPI</div>`;
+    }).catch(() => {});
+  }
 }
 
 function newOrder() {
+  checkout.customer = null;
+  checkout.mode = "Cash";
+  checkout.discount = 0;
   lastTranscript = "";
   lastInvoice = null;
   $("tx").value = "";

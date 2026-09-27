@@ -7,6 +7,8 @@ Run with:  bench --site myshop.local execute my_shop.demo.seed
 import frappe
 from frappe.utils import getdate, nowdate
 
+from my_shop.payments import CASH, UPI, ensure_mode_of_payment
+
 COMPANY = "My Shop"
 ABBR = "MS"
 ITEM_GROUP = "Hardware"
@@ -181,8 +183,10 @@ def seed():
 	_ensure_selling_settings()
 	_ensure_customer()
 	_ensure_settings()
+	for mode in (CASH, UPI):
+		ensure_mode_of_payment(mode)
 
 	frappe.db.set_single_value("System Settings", "setup_complete", 1)
 	frappe.db.commit()
 
-	print(f"Seeded {len(ITEMS)} items for {COMPANY}. Open /voice")
+	print(f"Seeded {len(ITEMS)} items for {COMPANY}. Open /voice and /khata")

@@ -1,9 +1,9 @@
 import frappe
-from erpnext.accounts.doctype.payment_entry.payment_entry import get_payment_entry
 from frappe import _
 from frappe.utils import flt
 
 from my_shop.parser import parse_and_match
+from my_shop.payments import CASH, PAYMENT_MODES, UDHAAR, record_payment, upi_link, upi_qr_svg, whatsapp_link
 
 COMMON_UOMS = ("Nos", "Kg", "Meter", "Litre", "Packet", "Box", "Dozen")
 
@@ -91,23 +91,9 @@ def add_item(item_name: str, rate: float = 0, uom: str = "Nos"):
 	return {"item_code": item_name}
 
 
-def _mark_paid_in_cash(invoice):
-	"""A counter sale is cash in hand, not a receivable. Record the payment
-	immediately so the invoice does not sit around marked Unpaid."""
-	if not frappe.db.exists("Mode of Payment", "Cash"):
-		return  # no Cash mode configured for this shop; leave it Unpaid
-
-	payment = get_payment_entry(invoice.doctype, invoice.name)
-	payment.mode_of_payment = "Cash"
-	payment.reference_no = invoice.name
-	payment.reference_date = invoice.posting_date
-	payment.insert(ignore_permissions=True)
-	payment.submit()
-
-
 @frappe.whitelist()
-def create_invoice(rows: str):
-	"""Create the draft Sales Invoice from the rows as edited on the billing page.
+def create_invoice(rows: str, customer: str | None = None, payment_mode: str = CASH, discount: float = 0):
+	"""Create the Sales Invoice from the rows as edited on the billing page.
 
 	Quantities and rates come from the grid, not from the transcript, so whatever
 	the shopkeeper corrected on screen is exactly what gets billed.
@@ -115,12 +101,20 @@ def create_invoice(rows: str):
 	rows = frappe.parse_json(rows)
 	if not rows:
 		frappe.throw(_("Add at least one item"))
+	if payment_mode not in PAYMENT_MODES:
+		frappe.throw(_("Unknown payment mode {0}").format(payment_mode))
 
 	settings = _settings()
+	customer = customer or settings.default_customer
+	if payment_mode == UDHAAR and customer == settings.default_customer:
+		frappe.throw(_("Pick the customer before giving udhaar"))
+
 	invoice = frappe.new_doc("Sales Invoice")
-	invoice.customer = settings.default_customer
+	invoice.customer = customer
 	invoice.company = settings.company
 	invoice.selling_price_list = _selling_price_list()
+	if settings.taxes_and_charges:
+		invoice.taxes_and_charges = settings.taxes_and_charges
 
 	for row in rows:
 		qty = flt(row.get("qty"))
@@ -137,19 +131,73 @@ def create_invoice(rows: str):
 	if not invoice.items:
 		frappe.throw(_("Add at least one item"))
 
+	discount = flt(discount, 2)
+	if discount < 0:
+		frappe.throw(_("Discount cannot be negative"))
+	if discount:
+		invoice.apply_discount_on = "Grand Total"
+		invoice.discount_amount = discount
+
 	invoice.set_missing_values()
 	invoice.insert()
+	if invoice.grand_total < 0:
+		frappe.throw(_("Discount is more than the bill"))
 	invoice.submit()  # a spoken order is a real sale, not a draft awaiting review
-	_mark_paid_in_cash(invoice)
+	if payment_mode != UDHAAR and invoice.outstanding_amount > 0:
+		record_payment(invoice.name, payment_mode)
 
+	return bill_summary(invoice.name)
+
+
+def bill_summary(name: str) -> dict:
+	invoice = frappe.get_doc("Sales Invoice", name)
+	mobile = frappe.db.get_value("Customer", invoice.customer, "mobile_no")
 	return {
 		"name": invoice.name,
 		"url": f"/app/sales-invoice/{invoice.name}",
 		"print_url": f"/invoice?name={invoice.name}",
+		"customer": invoice.customer,
+		"customer_name": invoice.customer_name,
 		"grand_total": invoice.grand_total,
+		"discount": invoice.discount_amount,
+		"taxes": invoice.total_taxes_and_charges,
+		"outstanding": invoice.outstanding_amount,
+		"status": invoice.status,
+		"upi_link": upi_link(invoice.outstanding_amount, invoice.name) if invoice.outstanding_amount else None,
+		"whatsapp_url": whatsapp_link(mobile, bill_text(invoice)),
 		"rows": [
 			{"item_code": i.item_code, "item_name": i.item_name, "qty": i.qty,
 			 "rate": i.rate, "amount": i.amount}
 			for i in invoice.items
 		],
 	}
+
+
+def bill_text(invoice) -> str:
+	settings = _settings()
+	lines = [f"*{settings.shop_name or invoice.company}*", f"Bill {invoice.name} · {frappe.utils.formatdate(invoice.posting_date)}", ""]
+	for item in invoice.items:
+		lines.append(f"{frappe.utils.flt(item.qty):g} × {item.item_name} = {_money(item.amount)}")
+	if invoice.discount_amount:
+		lines.append(f"Discount: -{_money(invoice.discount_amount)}")
+	if invoice.total_taxes_and_charges:
+		lines.append(f"Tax: {_money(invoice.total_taxes_and_charges)}")
+	lines += ["", f"*Total: {_money(invoice.grand_total)}*"]
+	if invoice.outstanding_amount > 0:
+		lines.append(f"Pending: {_money(invoice.outstanding_amount)}")
+		link = upi_link(invoice.outstanding_amount, invoice.name)
+		if link:
+			lines.append(f"Pay by UPI: {link}")
+	else:
+		lines.append("Paid. Thank you!")
+	return "\n".join(lines)
+
+
+def _money(amount: float) -> str:
+	return frappe.utils.fmt_money(amount, precision=2, currency="INR")
+
+
+@frappe.whitelist()
+def upi_qr(amount: float, note: str = ""):
+	link = upi_link(amount, note or "Bill")
+	return {"link": link, "svg": upi_qr_svg(link)} if link else None
