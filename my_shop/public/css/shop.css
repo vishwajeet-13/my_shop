@@ -321,7 +321,6 @@ svg {
 
 .ms-btn:focus-visible,
 .ms-mini:focus-visible,
-.ms-chip:focus-visible,
 .ms-mic:focus-visible,
 .ms-mode:focus-visible,
 .ms-del:focus-visible,
@@ -465,36 +464,6 @@ textarea.ms-tx:focus,
 
 .ms-hint.live {
 	color: var(--red);
-}
-
-.ms-subhint {
-	margin: 4px 0 0;
-	color: var(--muted);
-	font-size: 13px;
-}
-
-.ms-chips {
-	display: flex;
-	flex-wrap: wrap;
-	justify-content: center;
-	gap: 8px;
-	margin-top: 16px;
-}
-
-.ms-chip {
-	padding: 7px 12px;
-	border: 1px solid var(--line);
-	border-radius: 999px;
-	background: var(--subtle);
-	color: var(--ink-soft);
-	font: 500 13px/1.2 var(--sans);
-	cursor: pointer;
-	transition: border-color 0.15s, color 0.15s;
-}
-
-.ms-chip:hover {
-	border-color: var(--brand);
-	color: var(--brand);
 }
 
 .ms-mono {

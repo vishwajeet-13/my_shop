@@ -26,12 +26,6 @@
       </svg>
     </button>
     <p class="ms-hint" id="hint">Tap to speak</p>
-    <p class="ms-subhint">Say the order, e.g. “five nut bolt and two hammer”</p>
-    <div class="ms-chips" id="chips">
-      <button class="ms-chip" type="button">five nut bolt and three wood screw</button>
-      <button class="ms-chip" type="button">two claw hammer</button>
-      <button class="ms-chip" type="button">paanch nut bolt do dozen washer</button>
-    </div>
   </section>
 
   <section class="ms-sheet">
@@ -107,10 +101,6 @@ if (!Recognition) {
     try { recogniser.start(); } catch (e) { /* already running */ }
   };
 }
-
-document.querySelectorAll(".ms-chip").forEach((chip) => {
-  chip.onclick = () => { $("tx").value = chip.textContent; $("tx").focus(); };
-});
 
 let lastTranscript = "";
 let lastInvoice = null;
