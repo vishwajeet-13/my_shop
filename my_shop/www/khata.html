@@ -1,5 +1,5 @@
 {% extends "templates/base.html" %}
-{% block title %}खाता · {{ shop_name }}{% endblock %}
+{% block title %}Ledger · {{ shop_name }}{% endblock %}
 {% block navbar %}{% endblock %}
 {% block footer %}{% endblock %}
 {% block style %}{% include "templates/includes/my_shop_head.html" %}{% endblock %}
@@ -9,24 +9,24 @@
   <header class="ms-head">
     <div class="ms-logo">{{ shop_name[0] | upper }}</div>
     <div>
-      <h1 class="ms-title">खाता</h1>
-      <p class="ms-tag">बिक्री और उधार · Sales & udhaar</p>
+      <h1 class="ms-title">Ledger</h1>
+      <p class="ms-tag">Sales, collections and credit</p>
     </div>
   </header>
 
   <section class="ms-sheet">
-    <h2 class="ms-label">आज <small>Today</small></h2>
+    <h2 class="ms-label">Today</h2>
     <div class="ms-stats" id="stats"><div class="ms-muted">…</div></div>
   </section>
 
   <section class="ms-sheet">
-    <h2 class="ms-label">किसका कितना बाकी <small>Who owes you</small></h2>
+    <h2 class="ms-label">Outstanding credit</h2>
     <div id="dues"><div class="ms-muted">…</div></div>
     <div class="ms-err" id="err"></div>
   </section>
 
   <section class="ms-sheet">
-    <h2 class="ms-label">आज के बिल <small>Today's bills</small></h2>
+    <h2 class="ms-label">Today's bills</h2>
     <div id="recent"><div class="ms-muted">…</div></div>
   </section>
 </div>
@@ -64,20 +64,20 @@ async function loadSummary() {
   const collected = s.collected || {};
   const other = Object.entries(collected).filter(([k]) => k !== "Cash" && k !== "UPI").reduce((a, [, v]) => a + v, 0);
   $("stats").innerHTML = [
-    ["", shortMoney(s.total), `बिक्री · Sales (${s.bills} बिल)`],
-    ["cash", shortMoney(collected.Cash), "💵 नकद मिला · Cash in"],
-    ["upi", shortMoney(collected.UPI), "📱 UPI मिला · UPI in"],
-    ["udhaar", shortMoney(s.on_credit), "📒 आज उधार · On credit"],
-  ].concat(other ? [["", shortMoney(other), "अन्य · Other in"]] : [])
+    ["", shortMoney(s.total), `Sales · ${s.bills} bills`],
+    ["cash", shortMoney(collected.Cash), "Cash collected"],
+    ["upi", shortMoney(collected.UPI), "UPI collected"],
+    ["udhaar", shortMoney(s.on_credit), "Given on credit"],
+  ].concat(other ? [["", shortMoney(other), "Other collected"]] : [])
     .map(([cls, value, label]) => `<div class="ms-stat ${cls}"><b>${value}</b><span>${label}</span></div>`).join("");
   $("recent").innerHTML = s.recent.length
     ? s.recent.map((b) => `
       <a class="ms-bill" href="/invoice?name=${encodeURIComponent(b.name)}">
         <span><b>${esc(b.customer_name)}</b><small>${esc(b.name)}</small></span>
         <span class="ms-ar"><span class="ms-mono">${money(b.grand_total)}</span><br>
-          <span class="ms-pill${b.outstanding_amount > 0 ? " due" : ""}">${b.outstanding_amount > 0 ? "उधार · Due" : "मिला · Paid"}</span></span>
+          <span class="ms-pill${b.outstanding_amount > 0 ? " due" : ""}">${b.outstanding_amount > 0 ? "Due" : "Paid"}</span></span>
       </a>`).join("")
-    : `<div class="ms-empty"><span>🧾</span>आज कोई बिल नहीं · No bills yet today</div>`;
+    : `<div class="ms-empty">No bills yet today.</div>`;
 }
 
 async function loadDues() {
@@ -88,18 +88,18 @@ async function loadDues() {
         <div class="ms-itemtop">
           <div class="ms-avatar">${esc((d.customer_name || "?")[0].toUpperCase())}</div>
           <div class="ms-who"><b>${esc(d.customer_name)}</b>
-            <small>${d.mobile_no ? "📞 " + esc(d.mobile_no) + " · " : ""}${d.days ? `${d.days} दिन से · ${d.days}d` : "आज से · today"}</small></div>
+            <small>${d.mobile_no ? esc(d.mobile_no) + " · " : ""}${d.days ? `${d.days} day${d.days === 1 ? "" : "s"} overdue` : "since today"}</small></div>
           <div class="ms-due">${shortMoney(d.due)}</div>
         </div>
         <div class="ms-acts">
           <input class="ms-field amt" type="number" min="0" step="1" value="${d.due}" aria-label="Amount received">
-          <select class="ms-field mode" aria-label="Paid by"><option value="Cash">💵 नकद Cash</option><option value="UPI">📱 UPI</option></select>
-          <button class="ms-mini green" data-act="receive">✓ पैसे मिले · Received</button>
-          <a class="ms-mini wa" href="${esc(d.reminder_url)}" target="_blank" rel="noopener">याद दिलाएँ · Remind</a>
+          <select class="ms-field mode" aria-label="Paid by"><option value="Cash">Cash</option><option value="UPI">UPI</option></select>
+          <button class="ms-mini green" data-act="receive">Record payment</button>
+          <a class="ms-mini wa" href="${esc(d.reminder_url)}" target="_blank" rel="noopener">Send reminder</a>
         </div>
         <div class="ms-err" data-slot="err"></div>
       </div>`).join("")
-    : `<div class="ms-empty"><span>🎉</span>किसी का कुछ बाकी नहीं · Nobody owes you</div>`;
+    : `<div class="ms-empty">No outstanding credit.</div>`;
 }
 
 $("dues").addEventListener("click", async (event) => {

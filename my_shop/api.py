@@ -109,7 +109,7 @@ def create_invoice(rows: str, customer: str | None = None, payment_mode: str = C
 	settings = _settings()
 	customer = customer or settings.default_customer
 	if payment_mode == UDHAAR and customer == settings.default_customer:
-		frappe.throw(_("Pick the customer before giving udhaar"))
+		frappe.throw(_("Select a customer to bill on credit"))
 
 	invoice = frappe.new_doc("Sales Invoice")
 	invoice.customer = customer

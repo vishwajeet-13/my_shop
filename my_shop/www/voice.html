@@ -1,5 +1,5 @@
 {% extends "templates/base.html" %}
-{% block title %}{{ shop_name }} · बिल{% endblock %}
+{% block title %}{{ shop_name }} · Billing{% endblock %}
 {% block navbar %}{% endblock %}
 {% block footer %}{% endblock %}
 {% block style %}{% include "templates/includes/my_shop_head.html" %}{% endblock %}
@@ -10,13 +10,12 @@
     <div class="ms-logo">{{ (shop_name or "M")[0] | upper }}</div>
     <div>
       <h1 class="ms-title">{{ shop_name }}</h1>
-      <p class="ms-tag">बोलिए, बिल बन जाएगा · Speak to bill</p>
+      <p class="ms-tag">Voice billing</p>
     </div>
-    <span class="ms-hello">नमस्ते!</span>
   </header>
 
   <a class="ms-hero" href="/khata" id="hero" hidden>
-    <div><small>आज की बिक्री · Today</small><b data-slot="today">₹0</b></div>
+    <div><small>Today's sales</small><b data-slot="today">₹0</b></div>
     <div class="ms-hero-side" data-slot="today-side"></div>
   </a>
 
@@ -26,8 +25,8 @@
         <rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7"/>
       </svg>
     </button>
-    <p class="ms-hint" id="hint">टैप करें और बोलें</p>
-    <p class="ms-subhint">Tap the mic and say the order</p>
+    <p class="ms-hint" id="hint">Tap to speak</p>
+    <p class="ms-subhint">Say the order, e.g. “five nut bolt and two hammer”</p>
     <div class="ms-chips" id="chips">
       <button class="ms-chip" type="button">five nut bolt and three wood screw</button>
       <button class="ms-chip" type="button">two claw hammer</button>
@@ -36,9 +35,9 @@
   </section>
 
   <section class="ms-sheet">
-    <label class="ms-label" for="tx">जो सुना <small>What we heard</small></label>
-    <textarea id="tx" class="ms-tx" placeholder="…या यहाँ लिखें / or type here"></textarea>
-    <button id="go" class="ms-btn">बिल देखें · Check bill</button>
+    <label class="ms-label" for="tx">Order</label>
+    <textarea id="tx" class="ms-tx" placeholder="Or type the order here"></textarea>
+    <button id="go" class="ms-btn">Review bill</button>
     <div class="ms-err" id="err"></div>
   </section>
 
@@ -50,6 +49,7 @@
 const CSRF = "{{ csrf_token }}";
 const LANG = "{{ speech_lang }}";
 const $ = (id) => document.getElementById(id);
+const ICONS = { cash: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/></svg>`, upi: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3M21 14v.01M14 21h3M21 18v3h-.01"/></svg>`, credit: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>` };
 
 async function call(method, args) {
   const path = method.includes(".") ? method : "my_shop.api." + method;
@@ -71,7 +71,7 @@ const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recogniser = null;
 
 if (!Recognition) {
-  $("hint").textContent = "आवाज़ के लिए Chrome चाहिए · Type instead";
+  $("hint").textContent = "Voice needs Chrome. Type the order instead.";
   $("mic").disabled = true;
 } else {
   recogniser = new Recognition();
@@ -83,7 +83,7 @@ if (!Recognition) {
     $("mic").classList.remove("fault");
     $("mic").classList.add("live");
     $("hint").classList.add("live");
-    $("hint").textContent = "सुन रहे हैं… Listening";
+    $("hint").textContent = "Listening…";
   };
   recogniser.onresult = (event) => {
     let text = "";
@@ -92,12 +92,12 @@ if (!Recognition) {
   };
   recogniser.onerror = (event) => {
     $("mic").classList.add("fault");
-    $("hint").textContent = "माइक नहीं चला (" + event.error + ") · Type instead";
+    $("hint").textContent = "Mic error (" + event.error + "). Type instead.";
   };
   recogniser.onend = () => {
     $("mic").classList.remove("live");
     $("hint").classList.remove("live");
-    if ($("hint").classList.contains("live") || $("hint").textContent.startsWith("सुन")) $("hint").textContent = "फिर से बोलें · Tap again";
+    if ($("hint").classList.contains("live") || $("hint").textContent.startsWith("Listening")) $("hint").textContent = "Tap to speak again";
   };
 
   $("mic").onclick = () => {
@@ -121,7 +121,7 @@ function esc(v) {
 function money(n) { return "₹" + (Number(n) || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 function busy(on, label) {
   $("go").disabled = on;
-  $("go").textContent = on ? (label || "रुकिए… Wait") : "बिल देखें · Check bill";
+  $("go").textContent = on ? (label || "Working…") : "Review bill";
 }
 function panelError(message) {
   const slot = $("out").querySelector('[data-slot="err"]');
@@ -131,9 +131,9 @@ function panelError(message) {
 $("go").onclick = async () => {
   const transcript = $("tx").value.trim();
   $("err").textContent = "";
-  if (!transcript) { $("err").textContent = "पहले ऑर्डर बोलें या लिखें · Say or type an order first"; return; }
+  if (!transcript) { $("err").textContent = "Say or type an order first."; return; }
   lastTranscript = transcript;
-  busy(true, "देख रहे हैं… Checking");
+  busy(true, "Checking…");
   try {
     renderEditor(await call("preview", { transcript }));
   } catch (e) {
@@ -160,22 +160,22 @@ function renderEditor(review) {
   const grid = review.rows.length
     ? `<div class="ms-ghead ms-edit"><div>Qty</div><div>Item</div><div class="ms-ar">Rate ₹</div><div class="ms-ar ms-amt-h">Amount</div><div></div></div>
        ${lines}
-       <div class="ms-total"><span>कुल · Total</span><span class="ms-mono" data-slot="total">0.00</span></div>`
-    : `<div class="ms-empty"><span>🤔</span>कोई सामान नहीं मिला · Nothing recognised</div>`;
+       <div class="ms-total"><span>Subtotal</span><span class="ms-mono" data-slot="total">0.00</span></div>`
+    : `<div class="ms-empty">Nothing recognised in the order.</div>`;
 
   const missing = review.unmatched.map((u, n) => `
     <div class="ms-add" data-i="${n}">
-      <div class="ms-addhead">${u.qty} × “${esc(u.phrase)}” नया सामान है · new item</div>
+      <div class="ms-addhead">${u.qty} × “${esc(u.phrase)}” is not in your items</div>
       <div class="ms-addrow">
-        <input class="newname" value="${esc(u.phrase)}" placeholder="सामान का नाम · Item name">
-        <input class="rt" type="number" min="0" step="0.01" placeholder="रेट ₹ · Rate">
+        <input class="newname" value="${esc(u.phrase)}" placeholder="Item name">
+        <input class="rt" type="number" min="0" step="0.01" placeholder="Rate ₹">
         <select class="um">${uoms}</select>
-        <button class="ms-mini" data-act="add">+ जोड़ें · Add item</button>
+        <button class="ms-mini" data-act="add">Add item</button>
       </div>
     </div>`).join("");
 
   $("out").innerHTML = grid + missing + checkoutHtml() + `
-    <button class="ms-btn green" data-act="create">✓ बिल बनाएँ · Create bill</button>
+    <button class="ms-btn green" data-act="create">Create bill</button>
     <div class="ms-err" data-slot="err"></div>`;
   $("out").style.display = "block";
   recalc();
@@ -192,21 +192,21 @@ function checkoutHtml() {
   const who = c
     ? `<div class="ms-picked"><span><b>${esc(c.customer_name)}</b>${c.mobile_no ? " · " + esc(c.mobile_no) : ""}${c.due ? ` · <span class="ms-due">owes ${money(c.due)}</span>` : ""}</span>
          <button class="ms-del" data-act="unpick" title="Walk-in" aria-label="Clear customer">&times;</button></div>`
-    : `<input class="ms-custq ms-field" placeholder="🔍 नाम या फ़ोन · name or phone (optional)" autocomplete="off">
+    : `<input class="ms-custq ms-field" placeholder="Search name or phone (optional)" autocomplete="off">
        <div class="ms-found" data-slot="found"></div>`;
-  const modes = [["Cash", "💵", "नकद"], ["UPI", "📱", "UPI"], ["Udhaar", "📒", "उधार"]].map(([m, icon, hi]) =>
-    `<button type="button" class="ms-mode${m === checkout.mode ? " on" : ""}" data-act="mode" data-mode="${m}"><i>${icon}</i>${hi}<small>${m}</small></button>`).join("");
+  const modes = [["Cash", ICONS.cash, "Cash"], ["UPI", ICONS.upi, "UPI"], ["Udhaar", ICONS.credit, "Credit"]].map(([m, icon, label]) =>
+    `<button type="button" class="ms-mode${m === checkout.mode ? " on" : ""}" data-act="mode" data-mode="${m}"><i>${icon}</i>${label}</button>`).join("");
   return `
     <div class="ms-checkout">
-      <label class="ms-label">ग्राहक <small>Customer</small></label>
+      <label class="ms-label">Customer</label>
       ${who}
-      <label class="ms-label">पैसे कैसे? <small>Payment</small></label>
+      <label class="ms-label">Payment method</label>
       <div class="ms-modes">${modes}</div>
       <div class="ms-payrow">
-        <label class="ms-label" for="discount">छूट ₹ <small>Discount</small></label>
+        <label class="ms-label" for="discount">Discount (₹)</label>
         <input id="discount" class="ms-discount ms-field" type="number" min="0" step="1" value="${checkout.discount || ""}" placeholder="0">
       </div>
-      <div class="ms-payable"><span>देना है · To pay</span><span class="ms-mono" data-slot="payable">0.00</span></div>
+      <div class="ms-payable"><span>Amount due</span><span class="ms-mono" data-slot="payable">0.00</span></div>
       <div class="ms-qr" data-slot="qr"></div>
     </div>`;
 }
@@ -221,7 +221,7 @@ function rerenderCheckout() {
 
 function setMode(mode) {
   checkout.mode = mode;
-  panelError(mode === "Udhaar" && !checkout.customer ? "उधार के लिए ग्राहक चुनें · Pick the customer for udhaar" : "");
+  panelError(mode === "Udhaar" && !checkout.customer ? "Select a customer to bill on credit." : "");
   rerenderCheckout();
 }
 
@@ -249,9 +249,9 @@ function searchCustomers(text) {
         ${c.due ? `<span class="ms-due">owes ${money(c.due)}</span>` : ""}
       </button>`).join("") + `
       <div class="ms-newcust">
-        <input class="nc-name ms-field" placeholder="नया ग्राहक · New name" value="${isPhone ? "" : esc(query)}">
-        <input class="nc-mobile ms-field" placeholder="मोबाइल · Mobile" inputmode="tel" value="${isPhone ? esc(query) : ""}">
-        <button type="button" class="ms-mini green" data-act="newcust">+ ग्राहक जोड़ें · Add customer</button>
+        <input class="nc-name ms-field" placeholder="Customer name" value="${isPhone ? "" : esc(query)}">
+        <input class="nc-mobile ms-field" placeholder="Mobile" inputmode="tel" value="${isPhone ? esc(query) : ""}">
+        <button type="button" class="ms-mini green" data-act="newcust">Add customer</button>
       </div>`;
   }, 250);
 }
@@ -259,7 +259,7 @@ function searchCustomers(text) {
 async function saveCustomer(button) {
   const box = button.closest(".ms-newcust");
   const customer_name = box.querySelector(".nc-name").value.trim();
-  if (!customer_name) { panelError("ग्राहक का नाम लिखें · Enter a name"); return; }
+  if (!customer_name) { panelError("Enter the customer's name."); return; }
   button.disabled = true;
   try {
     pickCustomer(await call("my_shop.khata.add_customer", {
@@ -284,8 +284,8 @@ function refreshQr() {
       const qr = await call("upi_qr", { amount: checkout.payable, note: "Bill" });
       if (qrKey !== key) return;
       slot.innerHTML = qr
-        ? qr.svg + `<div>स्कैन करके ${money(checkout.payable)} भेजें · Scan to pay</div>`
-        : `<div class="ms-muted">QR के लिए <a href="/shop-settings">सेटिंग</a> में UPI ID डालें · Add your UPI ID in Settings</div>`;
+        ? qr.svg + `<div>Scan to pay ${money(checkout.payable)}</div>`
+        : `<div class="ms-muted">Add your UPI ID in <a href="/shop-settings">Settings</a> to show a payment QR.</div>`;
     } catch (e) { slot.innerHTML = ""; }
   }, 300);
 }
@@ -342,7 +342,7 @@ $("out").addEventListener("click", (event) => {
 async function quickAdd(button) {
   const box = button.closest(".ms-add");
   const item_name = box.querySelector(".newname").value.trim();
-  if (!item_name) { panelError("सामान का नाम लिखें · Enter the item name"); return; }
+  if (!item_name) { panelError("Enter the item name."); return; }
 
   button.disabled = true;
   button.textContent = "…";
@@ -364,14 +364,14 @@ async function quickAdd(button) {
   } catch (e) {
     panelError(e.message);
     button.disabled = false;
-    button.textContent = "+ जोड़ें · Add item";
+    button.textContent = "Add item";
   }
 }
 
 async function confirmCreate() {
   const rows = collectRows();
-  if (!rows.length) { panelError("बिल में कुछ नहीं है · Nothing to bill"); return; }
-  busy(true, "बन रहा है… Creating");
+  if (!rows.length) { panelError("Nothing to bill."); return; }
+  busy(true, "Creating…");
   try {
     renderInvoice(await call("create_invoice", {
       rows: JSON.stringify(rows),
@@ -397,30 +397,30 @@ function renderInvoice(result) {
 
   $("out").innerHTML = `
     <div class="ms-billed${result.outstanding > 0 ? " due" : ""}">
-      <div class="ms-tick">${result.outstanding > 0 ? "📒" : "✓"}</div>
-      <div><p class="ms-ok">${result.outstanding > 0 ? "उधार में लिखा · On udhaar" : "बिल बन गया! · Billed"}</p><div class="ms-invno">${esc(result.name)}</div></div>
+      <div class="ms-tick">${result.outstanding > 0 ? ICONS.credit : "✓"}</div>
+      <div><p class="ms-ok">${result.outstanding > 0 ? "Billed on credit" : "Payment received"}</p><div class="ms-invno">${esc(result.name)}</div></div>
     </div>
     <div class="ms-ghead ms-done"><div>Qty</div><div>Item</div><div class="ms-ar ms-rate">Rate</div><div class="ms-ar">Amount</div></div>
     ${body}
-    ${result.discount ? `<div class="ms-sumline"><span>छूट · Discount</span><span class="ms-mono">−${money(result.discount)}</span></div>` : ""}
-    ${result.taxes ? `<div class="ms-sumline"><span>टैक्स · Tax</span><span class="ms-mono">${money(result.taxes)}</span></div>` : ""}
-    <div class="ms-total"><span>कुल · Total</span><span class="ms-mono">${money(result.grand_total)}</span></div>
+    ${result.discount ? `<div class="ms-sumline"><span>Discount</span><span class="ms-mono">−${money(result.discount)}</span></div>` : ""}
+    ${result.taxes ? `<div class="ms-sumline"><span>Tax</span><span class="ms-mono">${money(result.taxes)}</span></div>` : ""}
+    <div class="ms-total"><span>Total</span><span class="ms-mono">${money(result.grand_total)}</span></div>
     <p class="ms-paidnote">${esc(result.customer_name)} · ${result.outstanding > 0
-      ? `<b class="ms-due">${money(result.outstanding)} बाकी · pending</b>`
-      : `${esc(checkout.mode)} से मिला ✓ · Paid`}</p>
+      ? `<b class="ms-due">${money(result.outstanding)} outstanding</b>`
+      : `Paid by ${esc(checkout.mode)}`}</p>
     ${result.upi_link ? `<div class="ms-qr" data-slot="billqr"></div>` : ""}
     <div class="ms-actions">
-      <button class="ms-btn" data-act="new">+ नया बिल · New</button>
-      <button class="ms-btn ghost" data-act="print">🖨 प्रिंट · Print</button>
+      <button class="ms-btn" data-act="new">New bill</button>
+      <button class="ms-btn ghost" data-act="print">Print</button>
     </div>
-    <a class="ms-btn wa ms-wa" href="${esc(result.whatsapp_url)}" target="_blank" rel="noopener">WhatsApp पर भेजें · Share</a>
+    <a class="ms-btn wa ms-wa" href="${esc(result.whatsapp_url)}" target="_blank" rel="noopener">Share on WhatsApp</a>
     <div class="ms-err" data-slot="err"></div>`;
   $("out").style.display = "block";
   $("out").scrollIntoView({ behavior: "smooth" });
   if (result.upi_link) {
     call("upi_qr", { amount: result.outstanding, note: result.name }).then((qr) => {
       const slot = $("out").querySelector('[data-slot="billqr"]');
-      if (qr && slot) slot.innerHTML = qr.svg + `<div>स्कैन करके ${money(result.outstanding)} भेजें · Scan to pay</div>`;
+      if (qr && slot) slot.innerHTML = qr.svg + `<div>Scan to pay ${money(result.outstanding)}</div>`;
     }).catch(() => {});
   }
 }
@@ -432,7 +432,7 @@ async function loadToday() {
     $("hero").hidden = false;
     $("hero").querySelector('[data-slot="today"]').textContent = money(s.total).replace(".00", "");
     $("hero").querySelector('[data-slot="today-side"]').innerHTML =
-      `${s.bills} बिल · bills<br>💵 ${money(c.Cash).replace(".00", "")} · 📱 ${money(c.UPI).replace(".00", "")}`;
+      `${s.bills} bills<br>Cash ${money(c.Cash).replace(".00", "")} · UPI ${money(c.UPI).replace(".00", "")}`;
   } catch (e) {}
 }
 loadToday();
@@ -447,7 +447,7 @@ function newOrder() {
   $("err").textContent = "";
   $("out").style.display = "none";
   $("out").innerHTML = "";
-  $("hint").textContent = "अगला ऑर्डर बोलें · Next order";
+  $("hint").textContent = "Tap to speak the next order";
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 </script>

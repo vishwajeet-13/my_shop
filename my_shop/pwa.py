@@ -5,7 +5,7 @@ from werkzeug.wrappers import Response
 
 from frappe.website.page_renderers.base_renderer import BaseRenderer
 
-CACHE_VERSION = "my-shop-v1"
+CACHE_VERSION = "my-shop-v2"
 
 SERVICE_WORKER = """
 const CACHE = "%(cache)s";
@@ -25,9 +25,9 @@ self.addEventListener("activate", (event) => {
 });
 
 const OFFLINE_PAGE = `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Offline</title><body style="margin:0;display:grid;place-items:center;min-height:100vh;background:#fff6ea;color:#2b1a0b;font:18px system-ui;text-align:center">
-<div><div style="font-size:56px">📶</div><h1 style="margin:8px 0">इंटरनेट नहीं है</h1><p>You are offline. Connect and try again.</p>
-<button onclick="location.reload()" style="font:700 18px system-ui;padding:14px 24px;border:0;border-radius:16px;background:#ff7a00;color:#fff">फिर कोशिश करें · Retry</button></div>`;
+<title>Offline</title><body style="margin:0;display:grid;place-items:center;min-height:100vh;background:#f5f6fa;color:#0f172a;font:18px system-ui;text-align:center">
+<div><h1 style="margin:8px 0">You are offline</h1><p>Check your connection and try again.</p>
+<button onclick="location.reload()" style="font:700 18px system-ui;padding:14px 24px;border:0;border-radius:16px;background:#4f46e5;color:#fff">Retry</button></div>`;
 
 self.addEventListener("fetch", (event) => {
   const request = event.request;
@@ -76,23 +76,23 @@ def manifest() -> dict:
 	return {
 		"name": f"{name} · Voice Billing",
 		"short_name": name,
-		"description": "बोलिए, बिल बन जाएगा · Speak an order, get a bill",
+		"description": "Speak an order, get a bill",
 		"id": "/voice",
 		"start_url": "/voice",
 		"scope": "/",
 		"display": "standalone",
 		"orientation": "portrait",
-		"background_color": "#fff6ea",
-		"theme_color": "#ff7a00",
-		"lang": "hi",
+		"background_color": "#f5f6fa",
+		"theme_color": "#4f46e5",
+		"lang": "en",
 		"icons": [
 			{"src": f"{icons}/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
 			{"src": f"{icons}/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
 			{"src": f"{icons}/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"},
 		],
 		"shortcuts": [
-			{"name": "नया बिल · New bill", "url": "/voice", "icons": [{"src": f"{icons}/icon-192.png", "sizes": "192x192"}]},
-			{"name": "खाता · Khata", "url": "/khata", "icons": [{"src": f"{icons}/icon-192.png", "sizes": "192x192"}]},
+			{"name": "New bill", "url": "/voice", "icons": [{"src": f"{icons}/icon-192.png", "sizes": "192x192"}]},
+			{"name": "Ledger", "url": "/khata", "icons": [{"src": f"{icons}/icon-192.png", "sizes": "192x192"}]},
 		],
 	}
 

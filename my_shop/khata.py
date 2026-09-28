@@ -114,8 +114,8 @@ def dues():
 def _reminder_text(customer_name: str, due: float) -> str:
 	settings = _settings()
 	shop = settings.shop_name or "our shop"
-	text = f"Namaste {customer_name}, your pending amount at {shop} is {_money(due)}."
-	link = upi_link(due, f"Udhaar {customer_name}")
+	text = f"Hello {customer_name}, your outstanding balance at {shop} is {_money(due)}."
+	link = upi_link(due, f"Balance {customer_name}")
 	if link:
 		text += f"\nPay by UPI: {link}"
 	return text + "\nThank you!"
