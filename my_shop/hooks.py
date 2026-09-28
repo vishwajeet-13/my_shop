@@ -309,3 +309,5 @@ require_type_annotated_api_methods = True
 doctype_js = {"Sales Invoice": "public/js/sales_invoice.js"}
 
 page_renderer = ["my_shop.pwa.PWARenderer"]
+
+jinja = {"methods": ["my_shop.pwa.shop_css_version"]}

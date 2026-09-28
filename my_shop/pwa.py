@@ -1,11 +1,24 @@
+import hashlib
 import json
+from functools import lru_cache
+from pathlib import Path
 
 import frappe
 from werkzeug.wrappers import Response
 
 from frappe.website.page_renderers.base_renderer import BaseRenderer
 
-CACHE_VERSION = "my-shop-v2"
+CACHE_VERSION = "my-shop-v3"
+SHOP_CSS = Path(__file__).parent / "public" / "css" / "shop.css"
+
+
+def shop_css_version() -> str:
+	return _file_hash(SHOP_CSS, SHOP_CSS.stat().st_mtime_ns)
+
+
+@lru_cache(maxsize=8)
+def _file_hash(path: Path, mtime_ns: int) -> str:
+	return hashlib.md5(path.read_bytes()).hexdigest()[:10]
 
 SERVICE_WORKER = """
 const CACHE = "%(cache)s";
