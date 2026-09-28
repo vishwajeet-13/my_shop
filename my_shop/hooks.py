@@ -307,3 +307,5 @@ require_type_annotated_api_methods = True
 
 # Add a way back to the voice billing page from the invoice form
 doctype_js = {"Sales Invoice": "public/js/sales_invoice.js"}
+
+page_renderer = ["my_shop.pwa.PWARenderer"]

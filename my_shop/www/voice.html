@@ -1,157 +1,33 @@
 {% extends "templates/base.html" %}
-{% block title %}{{ shop_name }} · Voice Billing{% endblock %}
+{% block title %}{{ shop_name }} · बिल{% endblock %}
 {% block navbar %}{% endblock %}
 {% block footer %}{% endblock %}
-{% block style %}
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400&family=JetBrains+Mono:wght@400..800&display=swap">
-<link rel="stylesheet" href="/assets/my_shop/css/shop.css?v={{ build_version }}">
-{% endblock %}
+{% block style %}{% include "templates/includes/my_shop_head.html" %}{% endblock %}
 
 {% block content %}
-<style>
-  .ms-head { display: flex; align-items: center; gap: 14px; margin: 0 0 26px; }
-
-  .ms-stage { text-align: center; padding: 34px 24px 26px; }
-  .ms-mic { position: relative; width: 112px; height: 112px; border-radius: 50%; border: none;
-        margin: 0 auto 18px; display: grid; place-items: center; cursor: pointer;
-        color: var(--on-accent);
-        background: radial-gradient(circle at 32% 26%, #d9703f, var(--accent) 45%, var(--accent-deep) 100%);
-        box-shadow: inset 0 -6px 14px rgba(0,0,0,.18), inset 0 0 0 4px rgba(255,250,242,.14),
-                    0 14px 28px -10px rgba(138,51,16,.65);
-        transition: transform .15s ease; }
-  .ms-mic svg { width: 40px; height: 40px; position: relative; z-index: 1; }
-  .ms-mic:hover { transform: scale(1.03); }
-  .ms-mic:active { transform: scale(.96); }
-  .ms-mic::before, .ms-mic::after { content: ""; position: absolute; inset: 0; border-radius: 50%;
-        border: 2px solid var(--accent); opacity: 0; pointer-events: none; }
-  .ms-mic.live::before { animation: ms-ring 1.6s ease-out infinite; }
-  .ms-mic.live::after { animation: ms-ring 1.6s ease-out .8s infinite; }
-  .ms-mic.live { background: radial-gradient(circle at 32% 26%, #ef7d4a, #d24f24 45%, #a63a17 100%); }
-  .ms-mic.fault { background: radial-gradient(circle at 32% 26%, #b9a78d, #8b7a62 60%, #6d5e4a 100%);
-        box-shadow: none; }
-  .ms-mic:disabled { cursor: not-allowed; opacity: .45; transform: none; box-shadow: none;
-        background: var(--muted); }
-  @keyframes ms-ring { from { transform: scale(1); opacity: .55; } to { transform: scale(1.7); opacity: 0; } }
-
-  .ms-hint { color: var(--muted); font-size: 14px; min-height: 22px; margin: 0; }
-  .ms-hint.live { color: var(--accent); font-weight: 600; }
-  .ms-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 18px; }
-  .ms-chip { border: 1px solid var(--line); background: var(--field); color: var(--ink-soft);
-        border-radius: 999px; padding: 7px 14px; font: italic 400 13px/1.2 var(--serif);
-        cursor: pointer; transition: border-color .15s, color .15s, background .15s; }
-  .ms-chip:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-wash); }
-
-  textarea.ms-tx { display: block; width: 100%; min-height: 92px; padding: 14px 16px; font: 17px/1.5 var(--sans);
-        border: 1px solid var(--line); border-radius: var(--radius-sm); resize: vertical;
-        background: var(--field); color: var(--ink); transition: border-color .15s, box-shadow .15s; }
-  textarea.ms-tx::placeholder { color: var(--muted); font-style: italic; }
-  textarea.ms-tx:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-wash); }
-  .ms-sheet .ms-btn { margin-top: 16px; }
-
-  .ms-err { color: var(--danger); font-size: 14px; margin-top: 12px; white-space: pre-wrap; }
-  .ms-err:empty { display: none; }
-  .ms-muted { color: var(--muted); font-size: 14px; padding: 8px 0; font-style: italic; }
-
-  #out { animation: ms-rise .35s ease both; }
-  .ms-edit { --cols: 64px 1fr 80px 88px 32px; }
-  .ms-done { --cols: 36px 1fr 76px 88px; }
-  .ms-grow .ms-gname { display: flex; align-items: baseline; gap: 8px; }
-  /* A short item name leaves empty space before the price columns. Filling it
-     with a dotted leader (menu/receipt convention) reads as designed, not broken. */
-  .ms-grow .ms-gname::after { content: ""; flex: 1 1 auto; min-width: 12px;
-        border-bottom: 2px dotted var(--line); transform: translateY(-4px); }
-  .ms-cell input { width: 100%; padding: 10px; font: 500 15px/1.2 var(--mono);
-        font-variant-numeric: tabular-nums; border: 1px solid var(--line); border-radius: 10px;
-        background: var(--field); color: var(--ink); -moz-appearance: textfield;
-        transition: border-color .15s, box-shadow .15s; }
-  .ms-cell input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-wash); }
-  .ms-cell input::-webkit-outer-spin-button,
-  .ms-cell input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-  .ms-cell input.r { text-align: right; }
-  .ms-cell input.q { font-weight: 700; text-align: center; }
-  .ms-amt { text-align: right; font: 600 15px/1.2 var(--mono); font-variant-numeric: tabular-nums; }
-  .ms-del { width: 32px; height: 32px; border: none; border-radius: 50%; background: none;
-        color: var(--muted); font-size: 20px; line-height: 1; cursor: pointer; display: grid; place-items: center; }
-  .ms-del:hover { color: var(--danger); background: var(--accent-wash); }
-  .ms-q { font-weight: 700; }
-
-  .ms-add { border: 1px dashed var(--accent); background: var(--accent-wash);
-        border-radius: var(--radius-sm); padding: 14px 16px; margin-top: 16px; }
-  .ms-addhead { font-size: 13.5px; color: var(--accent-deep); margin-bottom: 12px; font-weight: 600; }
-  .ms-addrow { display: grid; grid-template-columns: 1fr 92px 104px auto; gap: 8px; }
-  .ms-addrow input, .ms-addrow select { padding: 10px; font-size: 14px; border: 1px solid var(--line);
-        border-radius: 10px; background: var(--field); color: var(--ink); font-family: inherit; min-width: 0; }
-  .ms-mini { padding: 10px 18px; font-size: 14px; font-weight: 700; border: none;
-        border-radius: 10px; background: var(--accent); color: var(--on-accent); cursor: pointer; }
-  .ms-mini:disabled { opacity: .5; cursor: default; }
-
-  .ms-billed { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
-  .ms-ok { color: var(--ok); font: 600 21px/1.2 var(--serif); margin: 0; }
-  .ms-invno { font: 12px/1.4 var(--mono); color: var(--muted); letter-spacing: .02em; margin-top: 4px; }
-  .ms-billed .ms-stamp { animation: ms-stamp-in .45s cubic-bezier(.2,.9,.3,1.2) .1s both; }
-  .ms-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; }
-  .ms-actions .ms-btn { margin-top: 0; }
-
-  @media (prefers-color-scheme: dark) {
-    .ms-btn:not(.ghost) { background: var(--ink); color: var(--paper); }
-  }
-  @media (max-width: 480px) {
-    .ms-sheet { padding: 22px 16px; }
-    .ms-edit { --cols: 52px 1fr 70px 30px; }
-    .ms-edit .ms-amt, .ms-edit .ms-amt-h { display: none; }
-    .ms-done { --cols: 28px 1fr 80px; }
-    .ms-done .ms-rate { display: none; }
-    .ms-addrow { grid-template-columns: 1fr 1fr; }
-  }
-
-  .ms-checkout { margin-top: 20px; padding-top: 16px; border-top: 1px dashed var(--line); }
-  .ms-checkout .ms-label { margin-top: 14px; }
-  .ms-field { width: 100%; padding: 11px 12px; font-size: 15px; border: 1px solid var(--line);
-        border-radius: 10px; background: var(--field); color: var(--ink); font-family: inherit; min-width: 0; }
-  .ms-found { display: grid; gap: 6px; margin-top: 6px; }
-  .ms-found:empty { display: none; }
-  .ms-hit { text-align: left; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px;
-        background: var(--field); color: var(--ink); cursor: pointer; font: inherit; }
-  .ms-hit:hover { border-color: var(--accent); }
-  .ms-newcust { display: grid; grid-template-columns: 1fr 1fr auto; gap: 6px; }
-  .ms-picked { display: flex; align-items: center; justify-content: space-between; gap: 8px;
-        padding: 8px 8px 8px 12px; border: 1px solid var(--accent); border-radius: 10px; background: var(--accent-wash); }
-  .ms-due { color: var(--danger); font-weight: 600; }
-  .ms-modes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-  .ms-mode { padding: 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--field);
-        color: var(--ink); font-weight: 600; cursor: pointer; }
-  .ms-mode.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
-  .ms-payrow { display: grid; grid-template-columns: auto 120px; align-items: center; gap: 12px; margin-top: 14px; }
-  .ms-payrow .ms-label { margin: 0; }
-  .ms-sumline { display: flex; justify-content: space-between; padding: 8px 0 0; color: var(--ink-soft); }
-  .ms-payable { font: 600 18px/1.3 var(--serif); color: var(--ink); }
-  .ms-qr { text-align: center; color: var(--muted); font-size: 13px; margin-top: 12px; }
-  .ms-qr:empty { display: none; }
-  .ms-qr svg { width: 180px; height: 180px; background: #fff; border-radius: 8px; padding: 4px; }
-  .ms-paidnote { margin: 12px 0 0; color: var(--ink-soft); }
-  .ms-wa { margin-top: 10px; }
-  .ms-nav { margin-left: auto; color: var(--accent); font-weight: 600; text-decoration: none; white-space: nowrap; }
-</style>
-
 <div class="ms-wrap">
   <header class="ms-head">
     <div class="ms-logo">{{ (shop_name or "M")[0] | upper }}</div>
     <div>
       <h1 class="ms-title">{{ shop_name }}</h1>
-      <p class="ms-tag">Speak the order. It becomes an invoice.</p>
+      <p class="ms-tag">बोलिए, बिल बन जाएगा · Speak to bill</p>
     </div>
-    <a class="ms-nav" href="/khata">Khata →</a>
+    <span class="ms-hello">नमस्ते!</span>
   </header>
+
+  <a class="ms-hero" href="/khata" id="hero" hidden>
+    <div><small>आज की बिक्री · Today</small><b data-slot="today">₹0</b></div>
+    <div class="ms-hero-side" data-slot="today-side"></div>
+  </a>
 
   <section class="ms-sheet ms-stage">
     <button id="mic" class="ms-mic" aria-label="Start listening">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7"/>
       </svg>
     </button>
-    <p class="ms-hint" id="hint">Tap and say the order</p>
+    <p class="ms-hint" id="hint">टैप करें और बोलें</p>
+    <p class="ms-subhint">Tap the mic and say the order</p>
     <div class="ms-chips" id="chips">
       <button class="ms-chip" type="button">five nut bolt and three wood screw</button>
       <button class="ms-chip" type="button">two claw hammer</button>
@@ -160,14 +36,15 @@
   </section>
 
   <section class="ms-sheet">
-    <label class="ms-label" for="tx">What we heard</label>
-    <textarea id="tx" class="ms-tx" placeholder="…or just type the order here"></textarea>
-    <button id="go" class="ms-btn">Create Invoice</button>
+    <label class="ms-label" for="tx">जो सुना <small>What we heard</small></label>
+    <textarea id="tx" class="ms-tx" placeholder="…या यहाँ लिखें / or type here"></textarea>
+    <button id="go" class="ms-btn">बिल देखें · Check bill</button>
     <div class="ms-err" id="err"></div>
   </section>
 
   <section class="ms-sheet" id="out" style="display:none"></section>
 </div>
+{% set tab = "bill" %}{% include "templates/includes/my_shop_tabs.html" %}
 
 <script>
 const CSRF = "{{ csrf_token }}";
@@ -190,12 +67,11 @@ async function call(method, args) {
   return body.message;
 }
 
-/* ---- speech ---- */
 const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recogniser = null;
 
 if (!Recognition) {
-  $("hint").textContent = "Voice needs Chrome. Type the order instead.";
+  $("hint").textContent = "आवाज़ के लिए Chrome चाहिए · Type instead";
   $("mic").disabled = true;
 } else {
   recogniser = new Recognition();
@@ -207,7 +83,7 @@ if (!Recognition) {
     $("mic").classList.remove("fault");
     $("mic").classList.add("live");
     $("hint").classList.add("live");
-    $("hint").textContent = "Listening…";
+    $("hint").textContent = "सुन रहे हैं… Listening";
   };
   recogniser.onresult = (event) => {
     let text = "";
@@ -216,12 +92,12 @@ if (!Recognition) {
   };
   recogniser.onerror = (event) => {
     $("mic").classList.add("fault");
-    $("hint").textContent = "Mic error: " + event.error + ". Type it instead.";
+    $("hint").textContent = "माइक नहीं चला (" + event.error + ") · Type instead";
   };
   recogniser.onend = () => {
     $("mic").classList.remove("live");
     $("hint").classList.remove("live");
-    if ($("hint").textContent === "Listening…") $("hint").textContent = "Tap to speak again";
+    if ($("hint").classList.contains("live") || $("hint").textContent.startsWith("सुन")) $("hint").textContent = "फिर से बोलें · Tap again";
   };
 
   $("mic").onclick = () => {
@@ -236,17 +112,16 @@ document.querySelectorAll(".ms-chip").forEach((chip) => {
   chip.onclick = () => { $("tx").value = chip.textContent; $("tx").focus(); };
 });
 
-/* ---- create ---- */
 let lastTranscript = "";
 let lastInvoice = null;
 
 function esc(v) {
   return String(v).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 }
-function money(n) { return "₹" + (Number(n) || 0).toFixed(2); }
+function money(n) { return "₹" + (Number(n) || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 function busy(on, label) {
   $("go").disabled = on;
-  $("go").textContent = on ? (label || "Working…") : "Create Invoice";
+  $("go").textContent = on ? (label || "रुकिए… Wait") : "बिल देखें · Check bill";
 }
 function panelError(message) {
   const slot = $("out").querySelector('[data-slot="err"]');
@@ -256,9 +131,9 @@ function panelError(message) {
 $("go").onclick = async () => {
   const transcript = $("tx").value.trim();
   $("err").textContent = "";
-  if (!transcript) { $("err").textContent = "Say or type an order first."; return; }
+  if (!transcript) { $("err").textContent = "पहले ऑर्डर बोलें या लिखें · Say or type an order first"; return; }
   lastTranscript = transcript;
-  busy(true, "Checking…");
+  busy(true, "देख रहे हैं… Checking");
   try {
     renderEditor(await call("preview", { transcript }));
   } catch (e) {
@@ -283,24 +158,24 @@ function renderEditor(review) {
     </div>`).join("");
 
   const grid = review.rows.length
-    ? `<div class="ms-ghead ms-edit"><div>Qty</div><div>Item</div><div class="ms-ar">Rate</div><div class="ms-ar ms-amt-h">Amount</div><div></div></div>
+    ? `<div class="ms-ghead ms-edit"><div>Qty</div><div>Item</div><div class="ms-ar">Rate ₹</div><div class="ms-ar ms-amt-h">Amount</div><div></div></div>
        ${lines}
-       <div class="ms-total"><span>Total</span><span class="ms-mono" data-slot="total">0.00</span></div>`
-    : `<div class="ms-muted">Nothing recognised yet.</div>`;
+       <div class="ms-total"><span>कुल · Total</span><span class="ms-mono" data-slot="total">0.00</span></div>`
+    : `<div class="ms-empty"><span>🤔</span>कोई सामान नहीं मिला · Nothing recognised</div>`;
 
   const missing = review.unmatched.map((u, n) => `
     <div class="ms-add" data-i="${n}">
-      <div class="ms-addhead">${u.qty} × “${esc(u.phrase)}” is not in your items yet</div>
+      <div class="ms-addhead">${u.qty} × “${esc(u.phrase)}” नया सामान है · new item</div>
       <div class="ms-addrow">
-        <input class="newname" value="${esc(u.phrase)}" placeholder="Item name">
-        <input class="rt" type="number" min="0" step="0.01" placeholder="Rate">
+        <input class="newname" value="${esc(u.phrase)}" placeholder="सामान का नाम · Item name">
+        <input class="rt" type="number" min="0" step="0.01" placeholder="रेट ₹ · Rate">
         <select class="um">${uoms}</select>
-        <button class="ms-mini" data-act="add">Add</button>
+        <button class="ms-mini" data-act="add">+ जोड़ें · Add item</button>
       </div>
     </div>`).join("");
 
   $("out").innerHTML = grid + missing + checkoutHtml() + `
-    <button class="ms-btn" data-act="create">Create Invoice</button>
+    <button class="ms-btn green" data-act="create">✓ बिल बनाएँ · Create bill</button>
     <div class="ms-err" data-slot="err"></div>`;
   $("out").style.display = "block";
   recalc();
@@ -316,22 +191,22 @@ function checkoutHtml() {
   const c = checkout.customer;
   const who = c
     ? `<div class="ms-picked"><span><b>${esc(c.customer_name)}</b>${c.mobile_no ? " · " + esc(c.mobile_no) : ""}${c.due ? ` · <span class="ms-due">owes ${money(c.due)}</span>` : ""}</span>
-         <button class="ms-del" data-act="unpick" title="Walk-in customer" aria-label="Clear customer">&times;</button></div>`
-    : `<input class="ms-custq ms-field" placeholder="Walk-in · search name or phone" autocomplete="off">
+         <button class="ms-del" data-act="unpick" title="Walk-in" aria-label="Clear customer">&times;</button></div>`
+    : `<input class="ms-custq ms-field" placeholder="🔍 नाम या फ़ोन · name or phone (optional)" autocomplete="off">
        <div class="ms-found" data-slot="found"></div>`;
-  const modes = ["Cash", "UPI", "Udhaar"].map((m) =>
-    `<button type="button" class="ms-mode${m === checkout.mode ? " on" : ""}" data-act="mode" data-mode="${m}">${m}</button>`).join("");
+  const modes = [["Cash", "💵", "नकद"], ["UPI", "📱", "UPI"], ["Udhaar", "📒", "उधार"]].map(([m, icon, hi]) =>
+    `<button type="button" class="ms-mode${m === checkout.mode ? " on" : ""}" data-act="mode" data-mode="${m}"><i>${icon}</i>${hi}<small>${m}</small></button>`).join("");
   return `
     <div class="ms-checkout">
-      <label class="ms-label">Customer</label>
+      <label class="ms-label">ग्राहक <small>Customer</small></label>
       ${who}
-      <label class="ms-label">Payment</label>
+      <label class="ms-label">पैसे कैसे? <small>Payment</small></label>
       <div class="ms-modes">${modes}</div>
       <div class="ms-payrow">
-        <label class="ms-label" for="discount">Discount ₹</label>
+        <label class="ms-label" for="discount">छूट ₹ <small>Discount</small></label>
         <input id="discount" class="ms-discount ms-field" type="number" min="0" step="1" value="${checkout.discount || ""}" placeholder="0">
       </div>
-      <div class="ms-sumline ms-payable"><span>To pay</span><span class="ms-mono" data-slot="payable">0.00</span></div>
+      <div class="ms-payable"><span>देना है · To pay</span><span class="ms-mono" data-slot="payable">0.00</span></div>
       <div class="ms-qr" data-slot="qr"></div>
     </div>`;
 }
@@ -346,7 +221,7 @@ function rerenderCheckout() {
 
 function setMode(mode) {
   checkout.mode = mode;
-  panelError(mode === "Udhaar" && !checkout.customer ? "Pick or add the customer for udhaar." : "");
+  panelError(mode === "Udhaar" && !checkout.customer ? "उधार के लिए ग्राहक चुनें · Pick the customer for udhaar" : "");
   rerenderCheckout();
 }
 
@@ -374,9 +249,9 @@ function searchCustomers(text) {
         ${c.due ? `<span class="ms-due">owes ${money(c.due)}</span>` : ""}
       </button>`).join("") + `
       <div class="ms-newcust">
-        <input class="nc-name ms-field" placeholder="New customer name" value="${isPhone ? "" : esc(query)}">
-        <input class="nc-mobile ms-field" placeholder="Mobile" inputmode="tel" value="${isPhone ? esc(query) : ""}">
-        <button type="button" class="ms-mini" data-act="newcust">Add</button>
+        <input class="nc-name ms-field" placeholder="नया ग्राहक · New name" value="${isPhone ? "" : esc(query)}">
+        <input class="nc-mobile ms-field" placeholder="मोबाइल · Mobile" inputmode="tel" value="${isPhone ? esc(query) : ""}">
+        <button type="button" class="ms-mini green" data-act="newcust">+ ग्राहक जोड़ें · Add customer</button>
       </div>`;
   }, 250);
 }
@@ -384,7 +259,7 @@ function searchCustomers(text) {
 async function saveCustomer(button) {
   const box = button.closest(".ms-newcust");
   const customer_name = box.querySelector(".nc-name").value.trim();
-  if (!customer_name) { panelError("Give the customer a name."); return; }
+  if (!customer_name) { panelError("ग्राहक का नाम लिखें · Enter a name"); return; }
   button.disabled = true;
   try {
     pickCustomer(await call("my_shop.khata.add_customer", {
@@ -409,8 +284,8 @@ function refreshQr() {
       const qr = await call("upi_qr", { amount: checkout.payable, note: "Bill" });
       if (qrKey !== key) return;
       slot.innerHTML = qr
-        ? qr.svg + `<div>Customer scans to pay ${money(checkout.payable)}</div>`
-        : `<div class="ms-muted">Add your UPI ID in Shop Voice Settings to show a pay QR.</div>`;
+        ? qr.svg + `<div>स्कैन करके ${money(checkout.payable)} भेजें · Scan to pay</div>`
+        : `<div class="ms-muted">QR के लिए <a href="/shop-settings">सेटिंग</a> में UPI ID डालें · Add your UPI ID in Settings</div>`;
     } catch (e) { slot.innerHTML = ""; }
   }, 300);
 }
@@ -467,7 +342,7 @@ $("out").addEventListener("click", (event) => {
 async function quickAdd(button) {
   const box = button.closest(".ms-add");
   const item_name = box.querySelector(".newname").value.trim();
-  if (!item_name) { panelError("Give the item a name first."); return; }
+  if (!item_name) { panelError("सामान का नाम लिखें · Enter the item name"); return; }
 
   button.disabled = true;
   button.textContent = "…";
@@ -489,14 +364,14 @@ async function quickAdd(button) {
   } catch (e) {
     panelError(e.message);
     button.disabled = false;
-    button.textContent = "Add";
+    button.textContent = "+ जोड़ें · Add item";
   }
 }
 
 async function confirmCreate() {
   const rows = collectRows();
-  if (!rows.length) { panelError("Nothing to bill."); return; }
-  busy(true, "Creating…");
+  if (!rows.length) { panelError("बिल में कुछ नहीं है · Nothing to bill"); return; }
+  busy(true, "बन रहा है… Creating");
   try {
     renderInvoice(await call("create_invoice", {
       rows: JSON.stringify(rows),
@@ -513,6 +388,7 @@ async function confirmCreate() {
 
 function renderInvoice(result) {
   lastInvoice = result;
+  loadToday();
   const body = result.rows.map((r) => `
     <div class="ms-grow ms-done">
       <div class="ms-mono ms-q">${r.qty}</div><div class="ms-gname">${esc(r.item_name)}</div>
@@ -520,34 +396,46 @@ function renderInvoice(result) {
     </div>`).join("");
 
   $("out").innerHTML = `
-    <div class="ms-billed">
-      <div><p class="ms-ok">Order billed</p><div class="ms-invno">${esc(result.name)}</div></div>
-      <div class="ms-stamp">Billed</div>
+    <div class="ms-billed${result.outstanding > 0 ? " due" : ""}">
+      <div class="ms-tick">${result.outstanding > 0 ? "📒" : "✓"}</div>
+      <div><p class="ms-ok">${result.outstanding > 0 ? "उधार में लिखा · On udhaar" : "बिल बन गया! · Billed"}</p><div class="ms-invno">${esc(result.name)}</div></div>
     </div>
     <div class="ms-ghead ms-done"><div>Qty</div><div>Item</div><div class="ms-ar ms-rate">Rate</div><div class="ms-ar">Amount</div></div>
     ${body}
-    ${result.discount ? `<div class="ms-sumline"><span>Discount</span><span class="ms-mono">−${money(result.discount)}</span></div>` : ""}
-    ${result.taxes ? `<div class="ms-sumline"><span>Tax</span><span class="ms-mono">${money(result.taxes)}</span></div>` : ""}
-    <div class="ms-total"><span>Total</span><span class="ms-mono">${money(result.grand_total)}</span></div>
+    ${result.discount ? `<div class="ms-sumline"><span>छूट · Discount</span><span class="ms-mono">−${money(result.discount)}</span></div>` : ""}
+    ${result.taxes ? `<div class="ms-sumline"><span>टैक्स · Tax</span><span class="ms-mono">${money(result.taxes)}</span></div>` : ""}
+    <div class="ms-total"><span>कुल · Total</span><span class="ms-mono">${money(result.grand_total)}</span></div>
     <p class="ms-paidnote">${esc(result.customer_name)} · ${result.outstanding > 0
-      ? `<b class="ms-due">Udhaar ${money(result.outstanding)} pending</b>`
-      : `Paid by ${esc(checkout.mode)}`}</p>
+      ? `<b class="ms-due">${money(result.outstanding)} बाकी · pending</b>`
+      : `${esc(checkout.mode)} से मिला ✓ · Paid`}</p>
     ${result.upi_link ? `<div class="ms-qr" data-slot="billqr"></div>` : ""}
     <div class="ms-actions">
-      <button class="ms-btn" data-act="new">New order</button>
-      <button class="ms-btn ghost" data-act="print">Print</button>
+      <button class="ms-btn" data-act="new">+ नया बिल · New</button>
+      <button class="ms-btn ghost" data-act="print">🖨 प्रिंट · Print</button>
     </div>
-    <a class="ms-btn ghost ms-wa" href="${esc(result.whatsapp_url)}" target="_blank" rel="noopener">Share bill on WhatsApp</a>
+    <a class="ms-btn wa ms-wa" href="${esc(result.whatsapp_url)}" target="_blank" rel="noopener">WhatsApp पर भेजें · Share</a>
     <div class="ms-err" data-slot="err"></div>`;
   $("out").style.display = "block";
   $("out").scrollIntoView({ behavior: "smooth" });
   if (result.upi_link) {
     call("upi_qr", { amount: result.outstanding, note: result.name }).then((qr) => {
       const slot = $("out").querySelector('[data-slot="billqr"]');
-      if (qr && slot) slot.innerHTML = qr.svg + `<div>Scan to pay ${money(result.outstanding)} by UPI</div>`;
+      if (qr && slot) slot.innerHTML = qr.svg + `<div>स्कैन करके ${money(result.outstanding)} भेजें · Scan to pay</div>`;
     }).catch(() => {});
   }
 }
+
+async function loadToday() {
+  try {
+    const s = await call("my_shop.khata.today_summary", {});
+    const c = s.collected || {};
+    $("hero").hidden = false;
+    $("hero").querySelector('[data-slot="today"]').textContent = money(s.total).replace(".00", "");
+    $("hero").querySelector('[data-slot="today-side"]').innerHTML =
+      `${s.bills} बिल · bills<br>💵 ${money(c.Cash).replace(".00", "")} · 📱 ${money(c.UPI).replace(".00", "")}`;
+  } catch (e) {}
+}
+loadToday();
 
 function newOrder() {
   checkout.customer = null;
@@ -559,7 +447,7 @@ function newOrder() {
   $("err").textContent = "";
   $("out").style.display = "none";
   $("out").innerHTML = "";
-  $("hint").textContent = "Tap and say the next order";
+  $("hint").textContent = "अगला ऑर्डर बोलें · Next order";
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 </script>

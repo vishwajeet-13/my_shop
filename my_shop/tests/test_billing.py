@@ -107,3 +107,22 @@ class TestBilling(IntegrationTestCase):
 		after = khata.today_summary()
 		self.assertEqual(after["bills"], before["bills"] + 1)
 		self.assertEqual(after["collected"].get("UPI", 0), before["collected"].get("UPI", 0) + 200)
+
+	def test_settings_reject_malformed_upi_id(self):
+		with self.assertRaises(frappe.ValidationError):
+			api.save_app_settings("Shop", "not-a-upi-id")
+
+	def test_settings_save_upi_id(self):
+		saved = api.save_app_settings("Test Shop", "test.shop@okaxis", "hi-IN")
+		self.assertEqual(saved["upi_id"], "test.shop@okaxis")
+		self.assertEqual(frappe.db.get_single_value("Shop Voice Settings", "speech_lang"), "hi-IN")
+
+
+class TestPWA(IntegrationTestCase):
+	def test_manifest_points_at_the_app(self):
+		from my_shop.pwa import manifest
+
+		data = manifest()
+		self.assertEqual(data["start_url"], "/voice")
+		self.assertEqual(data["display"], "standalone")
+		self.assertIn("maskable", {icon["purpose"] for icon in data["icons"]})

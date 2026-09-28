@@ -2,95 +2,83 @@
 {% block title %}{{ invoice.name }} · {{ shop_name }}{% endblock %}
 {% block navbar %}{% endblock %}
 {% block footer %}{% endblock %}
-{% block style %}
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400&family=JetBrains+Mono:wght@400..800&display=swap">
-<link rel="stylesheet" href="/assets/my_shop/css/shop.css?v={{ build_version }}">
-{% endblock %}
+{% block style %}{% include "templates/includes/my_shop_head.html" %}{% endblock %}
 
 {% block content %}
 <style>
-  .ms-bar { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 22px; }
-  .ms-bar .ms-btn { min-height: 48px; font-size: 15px; }
+  .ms-bar { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 18px; }
+  .ms-bar .ms-btn { min-height: 50px; font-size: 16px; }
 
-  .ms-paper { filter: drop-shadow(0 1px 1px rgba(35,26,18,.05)) drop-shadow(0 14px 22px rgba(35,26,18,.16));
-        animation: ms-rise .4s ease both; }
-  .ms-receipt { background: var(--sheet); border-radius: var(--radius) var(--radius) 0 0;
-        padding: 34px 30px 26px; }
-  .ms-teeth { height: 12px; background: radial-gradient(circle at 9px 0, var(--sheet) 8.5px, transparent 9px) 0 0 / 18px 12px repeat-x; }
+  .ms-receipt { overflow: hidden; padding: 0; animation: ms-rise .35s ease both; }
+  .ms-rtop { display: flex; align-items: center; gap: 14px; padding: 20px 18px;
+        background: linear-gradient(120deg, var(--saffron), var(--saffron-deep)); color: #fff; }
+  .ms-rtop .ms-logo { background: #fff; color: var(--saffron-deep); box-shadow: 0 4px 0 rgba(0,0,0,.15); }
+  .ms-rtop .ms-title { color: #fff; }
+  .ms-rtop .ms-tag { color: rgba(255,255,255,.85); }
+  .ms-rbody { padding: 18px; }
 
-  .ms-rhead { display: flex; align-items: center; gap: 16px; padding-bottom: 22px; margin-bottom: 22px;
-        border-bottom: 1px dashed var(--line); }
-  .ms-rhead .ms-logo { width: 56px; height: 56px; font-size: 26px; }
-
-  .ms-meta { display: grid; grid-template-columns: 1fr auto; gap: 14px; margin-bottom: 26px; font-size: 13px; }
-  .ms-meta .ms-k { display: block; color: var(--muted); font-size: 10.5px; font-weight: 700;
-        text-transform: uppercase; letter-spacing: .1em; margin-bottom: 4px; }
-  .ms-meta .ms-v { color: var(--ink); font-weight: 600; font-size: 15px; }
+  .ms-meta { display: grid; grid-template-columns: 1fr auto; gap: 12px; margin-bottom: 18px;
+        padding: 12px 14px; border-radius: 16px; background: var(--field); }
+  .ms-k { display: block; color: var(--muted); font-size: 12px; font-weight: 600; }
+  .ms-v { font: 700 17px/1.3 var(--display); }
   .ms-meta .ms-right { text-align: right; }
-  .ms-meta .ms-invno { font: 500 13px/1.4 var(--mono); color: var(--ink); }
-  .ms-meta .ms-date { color: var(--muted); margin-top: 2px; }
 
-  .ms-items { --cols: 36px 1fr 80px 92px; }
-  .ms-items .ms-grow { align-items: baseline; font-size: 14.5px; }
-  .ms-items .ms-mono { font-size: 14px; }
-
-  .ms-foot { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 26px; }
-  .ms-thanks { color: var(--muted); font: italic 400 14px/1.4 var(--serif); margin: 0; }
-  .ms-foot .ms-stamp { font-size: 16px; padding: 8px 18px 7px; animation: ms-stamp-in .5s cubic-bezier(.2,.9,.3,1.2) .35s both; }
-
-  .ms-sumline { display: flex; justify-content: space-between; padding: 8px 0 0; color: var(--ink-soft); font-size: 14px; }
-  .ms-pending { color: var(--danger); font-weight: 700; padding-top: 12px; }
-  .ms-qr { text-align: center; color: var(--muted); font-size: 13px; margin-top: 16px; }
-  .ms-qr svg { width: 170px; height: 170px; background: #fff; border-radius: 8px; padding: 4px; }
-
-  @media (max-width: 480px) {
-    .ms-receipt { padding: 26px 18px 22px; }
-    .ms-items { --cols: 26px 1fr 84px; }
-    .ms-items .ms-rate { display: none; }
-    .ms-items .ms-sub { display: block; }
+  .ms-items { --cols: 30px 1fr 92px; }
+  .ms-items .ms-rate { display: none; }
+  .ms-sub { display: block; color: var(--muted); font-size: 13px; font-weight: 500; }
+  @media (min-width: 480px) {
+    .ms-items { --cols: 40px 1fr 84px 96px; }
+    .ms-items .ms-rate { display: block; }
+    .ms-sub { display: none; }
   }
-  .ms-sub { display: none; color: var(--muted); font: 12px/1.4 var(--mono); margin-top: 2px; }
+
+  .ms-pending { display: flex; justify-content: space-between; margin-top: 10px; padding: 12px 16px;
+        border-radius: 16px; background: var(--red-wash); color: var(--red); font: 800 18px/1.2 var(--display); }
+  .ms-foot { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 18px; }
+  .ms-thanks { margin: 0; color: var(--ink-soft); font: 700 16px/1.3 var(--display); }
+  .ms-thanks small { display: block; color: var(--muted); font: 500 13px/1.3 var(--sans); }
 
   @media print {
-    :root { --sheet: #fff; --ink: #000; --muted: #555; --line: #bbb; --ok: #000; }
+    :root { --surface: #fff; --field: #fff; --ink: #000; --ink-soft: #222; --muted: #555; --line: #bbb;
+            --saffron-wash: #fff; --saffron-deep: #000; --red: #000; --red-wash: #fff; --green: #000; }
     body { background: #fff !important; }
-    .ms-bar { display: none; }
+    .ms-bar, .ms-tabs { display: none !important; }
     .ms-wrap { padding: 0; max-width: none; }
-    .ms-paper { filter: none; animation: none; }
-    .ms-receipt { padding: 0; }
-    .ms-teeth { display: none; }
-    .ms-logo { background: none; color: #000; border: 2px solid #000; box-shadow: none; }
-    .ms-foot .ms-stamp { animation: none; opacity: 1; }
+    .ms-receipt { border: none; box-shadow: none; animation: none; }
+    .ms-rtop { background: none; color: #000; border-bottom: 2px solid #000; padding: 0 0 14px; }
+    .ms-rtop .ms-title, .ms-rtop .ms-tag { color: #000; }
+    .ms-rtop .ms-logo { border: 2px solid #000; box-shadow: none; transform: none; }
+    .ms-rbody { padding: 14px 0 0; }
+    .ms-meta { padding: 0; }
+    .ms-total, .ms-pending { padding: 10px 0; border-top: 2px solid #000; border-radius: 0; }
+    .ms-stamp { animation: none; }
   }
 </style>
 
 <div class="ms-wrap">
   <nav class="ms-bar">
-    <a class="ms-btn ghost" href="/voice">← Back to billing</a>
-    <button class="ms-btn" onclick="window.print()">Print</button>
+    <a class="ms-btn ghost" href="/voice">← बिलिंग · Billing</a>
+    <button class="ms-btn" onclick="window.print()">🖨 प्रिंट · Print</button>
   </nav>
 
-  <article class="ms-paper">
-    <div class="ms-receipt">
-      <header class="ms-rhead">
-        <div class="ms-logo">{{ mark }}</div>
-        <div>
-          <h1 class="ms-title">{{ shop_name }}</h1>
-          <p class="ms-tag">Retail invoice</p>
-        </div>
-      </header>
+  <article class="ms-sheet ms-receipt">
+    <header class="ms-rtop">
+      <div class="ms-logo">{{ mark }}</div>
+      <div>
+        <h1 class="ms-title">{{ shop_name }}</h1>
+        <p class="ms-tag">बिल · Invoice</p>
+      </div>
+    </header>
 
+    <div class="ms-rbody">
       <div class="ms-meta">
         <div>
-          <span class="ms-k">Billed to</span>
+          <span class="ms-k">ग्राहक · Billed to</span>
           <span class="ms-v">{{ invoice.customer_name or invoice.customer }}</span>
         </div>
         <div class="ms-right">
-          <span class="ms-k">Invoice</span>
-          <div class="ms-invno">{{ invoice.name }}</div>
-          <div class="ms-date">{{ frappe.utils.formatdate(invoice.posting_date) }}</div>
+          <span class="ms-k">{{ invoice.name }}</span>
+          <span class="ms-v">{{ frappe.utils.formatdate(invoice.posting_date) }}</span>
         </div>
       </div>
 
@@ -106,20 +94,21 @@
         {% endfor %}
       </div>
 
-      {% if invoice.discount_amount %}<div class="ms-sumline"><span>Discount</span><span class="ms-mono">−₹{{ "%.2f"|format(invoice.discount_amount) }}</span></div>{% endif %}
+      {% if invoice.discount_amount %}<div class="ms-sumline"><span>छूट · Discount</span><span class="ms-mono">−₹{{ "%.2f"|format(invoice.discount_amount) }}</span></div>{% endif %}
       {% for tax in invoice.taxes %}<div class="ms-sumline"><span>{{ tax.description }}</span><span class="ms-mono">₹{{ "%.2f"|format(tax.tax_amount_after_discount_amount) }}</span></div>{% endfor %}
-      <div class="ms-total"><span>Total</span><span class="ms-mono">₹{{ "%.2f"|format(invoice.grand_total) }}</span></div>
+      <div class="ms-total"><span>कुल · Total</span><span class="ms-mono">₹{{ "%.2f"|format(invoice.grand_total) }}</span></div>
 
       {% if invoice.outstanding_amount > 0 %}
-      <div class="ms-sumline ms-pending"><span>Pending (udhaar)</span><span class="ms-mono">₹{{ "%.2f"|format(invoice.outstanding_amount) }}</span></div>
-      {% if upi_qr %}<div class="ms-qr">{{ upi_qr }}<div>Scan to pay by UPI</div></div>{% endif %}
+      <div class="ms-pending"><span>बाकी · Pending</span><span class="ms-mono">₹{{ "%.2f"|format(invoice.outstanding_amount) }}</span></div>
+      {% if upi_qr %}<div class="ms-qr">{{ upi_qr }}<div>स्कैन करके भुगतान करें · Scan to pay</div></div>{% endif %}
       {% endif %}
+
       <footer class="ms-foot">
-        <p class="ms-thanks">Thank you for shopping with us</p>
-        {% if is_paid %}<div class="ms-stamp">Paid</div>{% endif %}
+        <p class="ms-thanks">धन्यवाद! 🙏<small>Thank you for shopping with us</small></p>
+        {% if is_paid %}<div class="ms-stamp">Paid</div>{% elif invoice.outstanding_amount > 0 %}<div class="ms-stamp due">उधार</div>{% endif %}
       </footer>
     </div>
-    <div class="ms-teeth"></div>
   </article>
 </div>
+{% set tab = "" %}{% include "templates/includes/my_shop_tabs.html" %}
 {% endblock %}

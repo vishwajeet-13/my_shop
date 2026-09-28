@@ -38,6 +38,17 @@ UPI, paid in the same step.
   owes money with how long it has been pending, a one-tap WhatsApp reminder,
   and **Received** to record a payment (settles the oldest bills first).
 
+## Install on a phone (PWA)
+
+The app is an installable PWA: `/manifest.webmanifest` and `/sw.js` are served
+by `my_shop/pwa.py`. Phones only install PWAs (and allow the mic) over HTTPS,
+so put a tunnel in front of bench:
+
+    cloudflared tunnel --url http://localhost:8013 --http-host-header localhost
+
+Open the printed `https://….trycloudflare.com/voice` in Chrome on the phone,
+log in, then Settings tab → **Install**, or Chrome menu → **Add to Home screen**.
+
 ## How it works
 
     transcript -> parse_transcript()  -> [(qty, phrase), ...]

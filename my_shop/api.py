@@ -1,3 +1,5 @@
+import re
+
 import frappe
 from frappe import _
 from frappe.utils import flt
@@ -201,3 +203,22 @@ def _money(amount: float) -> str:
 def upi_qr(amount: float, note: str = ""):
 	link = upi_link(amount, note or "Bill")
 	return {"link": link, "svg": upi_qr_svg(link)} if link else None
+
+
+SPEECH_LANGUAGES = ("en-IN", "hi-IN", "en-US", "en-GB")
+
+
+@frappe.whitelist()
+def save_app_settings(shop_name: str, upi_id: str = "", speech_lang: str = "en-IN"):
+	if speech_lang not in SPEECH_LANGUAGES:
+		frappe.throw(_("Unknown speech language {0}").format(speech_lang))
+	upi_id = (upi_id or "").strip()
+	if upi_id and not re.fullmatch(r"[\w.\-]{2,256}@[a-zA-Z][\w.\-]{1,64}", upi_id):
+		frappe.throw(_("UPI ID looks wrong. It should look like name@bank"))
+
+	settings = frappe.get_doc("Shop Voice Settings")
+	settings.shop_name = (shop_name or "").strip() or settings.shop_name
+	settings.upi_id = upi_id
+	settings.speech_lang = speech_lang
+	settings.save()
+	return {"shop_name": settings.shop_name, "upi_id": settings.upi_id, "speech_lang": settings.speech_lang}

@@ -1,0 +1,111 @@
+{% extends "templates/base.html" %}
+{% block title %}सेटिंग · {{ shop_name }}{% endblock %}
+{% block navbar %}{% endblock %}
+{% block footer %}{% endblock %}
+{% block style %}{% include "templates/includes/my_shop_head.html" %}{% endblock %}
+
+{% block content %}
+<style>
+  .ms-form .ms-label { margin-top: 16px; }
+  .ms-form .ms-label:first-child { margin-top: 0; }
+  .ms-help { margin: 6px 2px 0; color: var(--muted); font-size: 13px; }
+  .ms-saved { margin-top: 12px; padding: 10px 14px; border-radius: 14px; background: var(--green-wash);
+        color: var(--green-deep); font-weight: 700; }
+  .ms-saved:empty { display: none; }
+  .ms-links { display: grid; gap: 10px; }
+  .ms-install[hidden] { display: none; }
+</style>
+
+<div class="ms-wrap">
+  <header class="ms-head">
+    <div class="ms-logo">{{ shop_name[0] | upper }}</div>
+    <div>
+      <h1 class="ms-title">सेटिंग</h1>
+      <p class="ms-tag">दुकान की जानकारी · Shop settings</p>
+    </div>
+  </header>
+
+  <section class="ms-sheet ms-install" id="install" hidden>
+    <h2 class="ms-label">📲 फ़ोन पर ऐप बनाएँ <small>Install app</small></h2>
+    <p class="ms-help">होम स्क्रीन पर लगाएँ, ऐप की तरह खुलेगा · Add to your home screen</p>
+    <button class="ms-btn" id="install-btn">इंस्टॉल करें · Install</button>
+  </section>
+
+  <form class="ms-sheet ms-form" id="form">
+    <label class="ms-label" for="shop_name">दुकान का नाम <small>Shop name</small></label>
+    <input class="ms-field" id="shop_name" value="{{ settings.shop_name or '' }}" required>
+
+    <label class="ms-label" for="upi_id">UPI ID <small>for QR payments</small></label>
+    <input class="ms-field" id="upi_id" value="{{ settings.upi_id or '' }}" placeholder="yourname@okaxis" autocapitalize="off" autocorrect="off">
+    <p class="ms-help">इससे बिल पर QR बनेगा · Shown as a pay QR on bills and reminders</p>
+
+    <label class="ms-label" for="speech_lang">बोलने की भाषा <small>Speech language</small></label>
+    <select class="ms-field" id="speech_lang">
+      {% for lang in speech_languages %}
+      <option value="{{ lang }}"{% if lang == settings.speech_lang %} selected{% endif %}>{{ {"en-IN": "English (India) + Hinglish", "hi-IN": "हिन्दी · Hindi", "en-US": "English (US)", "en-GB": "English (UK)"}[lang] }}</option>
+      {% endfor %}
+    </select>
+
+    {% if can_edit %}
+    <button class="ms-btn green" type="submit" id="save">✓ सेव करें · Save</button>
+    {% else %}
+    <p class="ms-help">सिर्फ़ मालिक बदल सकते हैं · Only the owner can change these</p>
+    {% endif %}
+    <div class="ms-saved" id="saved"></div>
+    <div class="ms-err" id="err"></div>
+  </form>
+
+  <section class="ms-sheet">
+    <h2 class="ms-label">और <small>More</small></h2>
+    <div class="ms-links">
+      <a class="ms-btn ghost" href="/app/shop-voice-settings">⚙️ पूरी सेटिंग · All settings (Desk)</a>
+      <a class="ms-btn ghost" href="/app/item">📦 सामान · Items &amp; prices</a>
+      <a class="ms-btn ghost" href="/app/customer">👥 ग्राहक · Customers</a>
+    </div>
+  </section>
+</div>
+{% set tab = "settings" %}{% include "templates/includes/my_shop_tabs.html" %}
+
+<script>
+const CSRF = "{{ csrf_token }}";
+const $ = (id) => document.getElementById(id);
+
+$("save") && $("form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  $("saved").textContent = "";
+  $("err").textContent = "";
+  $("save").disabled = true;
+  try {
+    const res = await fetch("/api/method/my_shop.api.save_app_settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Frappe-CSRF-Token": CSRF },
+      body: JSON.stringify({ shop_name: $("shop_name").value, upi_id: $("upi_id").value, speech_lang: $("speech_lang").value }),
+    });
+    const body = await res.json();
+    if (!res.ok) {
+      const messages = JSON.parse(body._server_messages || "[]").map((m) => JSON.parse(m).message);
+      throw new Error(messages.join("\n") || "Could not save");
+    }
+    $("saved").textContent = "सेव हो गया ✓ Saved";
+  } catch (e) {
+    $("err").textContent = e.message;
+  } finally {
+    $("save").disabled = false;
+  }
+});
+
+let installPrompt = null;
+window.addEventListener("beforeinstallprompt", (event) => {
+  event.preventDefault();
+  installPrompt = event;
+  $("install").hidden = false;
+});
+$("install-btn").addEventListener("click", async () => {
+  if (!installPrompt) return;
+  installPrompt.prompt();
+  await installPrompt.userChoice;
+  installPrompt = null;
+  $("install").hidden = true;
+});
+</script>
+{% endblock %}
