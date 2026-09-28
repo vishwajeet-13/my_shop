@@ -26,6 +26,12 @@
       </svg>
     </button>
     <p class="ms-hint" id="hint">Tap to speak</p>
+    <div class="ms-ways">
+      <p class="ms-ways-title">Ways to say it</p>
+      <button class="ms-way" type="button" data-say="5 nut bolt, 2 kg wire nail"><span>Numbers &amp; units</span>“5 nut bolt, 2 kg wire nail”</button>
+      <button class="ms-way" type="button" data-say="two dozen washer and one claw hammer"><span>Words</span>“two dozen washer and one claw hammer”</button>
+      <button class="ms-way" type="button" data-say="paanch nut bolt aur do hammer"><span>Hindi counting</span>“paanch nut bolt aur do hammer”</button>
+    </div>
   </section>
 
   <section class="ms-sheet">
@@ -101,6 +107,10 @@ if (!Recognition) {
     try { recogniser.start(); } catch (e) { /* already running */ }
   };
 }
+
+document.querySelectorAll(".ms-way").forEach((way) => {
+  way.onclick = () => { $("tx").value = way.dataset.say; $("tx").focus(); };
+});
 
 let lastTranscript = "";
 let lastInvoice = null;

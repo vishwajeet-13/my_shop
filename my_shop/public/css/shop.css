@@ -322,6 +322,7 @@ svg {
 .ms-btn:focus-visible,
 .ms-mini:focus-visible,
 .ms-mic:focus-visible,
+.ms-way:focus-visible,
 .ms-mode:focus-visible,
 .ms-del:focus-visible,
 .ms-tab:focus-visible,
@@ -464,6 +465,48 @@ textarea.ms-tx:focus,
 
 .ms-hint.live {
 	color: var(--red);
+}
+
+.ms-ways {
+	display: grid;
+	gap: 6px;
+	margin-top: 20px;
+	padding-top: 16px;
+	border-top: 1px solid var(--line);
+	text-align: left;
+}
+
+.ms-ways-title {
+	margin: 0 0 2px;
+	color: var(--muted);
+	font-size: 12px;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+
+.ms-way {
+	display: grid;
+	gap: 2px;
+	padding: 10px 12px;
+	border: 1px solid transparent;
+	border-radius: 12px;
+	background: var(--subtle);
+	color: var(--ink);
+	font: 500 14px/1.35 var(--sans);
+	text-align: left;
+	cursor: pointer;
+	transition: border-color 0.15s;
+}
+
+.ms-way:hover {
+	border-color: var(--brand);
+}
+
+.ms-way span {
+	color: var(--brand);
+	font-size: 11px;
+	font-weight: 600;
 }
 
 .ms-mono {
