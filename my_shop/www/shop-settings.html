@@ -9,26 +9,27 @@
   .ms-form .ms-label { margin-top: 16px; }
   .ms-form .ms-label:first-child { margin-top: 0; }
   .ms-help { margin: 6px 2px 0; color: var(--muted); font-size: 13px; }
-  .ms-saved { margin-top: 12px; padding: 10px 14px; border-radius: 14px; background: var(--green-wash);
-        color: var(--green-deep); font-weight: 700; }
+  .ms-saved { margin-top: 12px; padding: 10px 14px; border-radius: 12px; background: var(--green-wash);
+        color: var(--green-deep); font-weight: 600; }
   .ms-saved:empty { display: none; }
-  .ms-links { display: grid; gap: 10px; }
-  .ms-install[hidden] { display: none; }
+  .ms-install[hidden], .ms-install [hidden] { display: none; }
+  .ms-install h2 { margin: 0; color: var(--ink); font: 600 20px/1.2 var(--serif); }
+  .ms-install .ms-help { font-size: 14px; color: var(--ink-soft); }
 </style>
 
-<div class="ms-wrap">
+<div class="ms-wrap ms-narrow">
   <header class="ms-head">
     <div class="ms-logo">{{ shop_name[0] | upper }}</div>
     <div>
+      <p class="ms-eyebrow">{{ shop_name }}</p>
       <h1 class="ms-title">Settings</h1>
-      <p class="ms-tag">Shop profile and payments</p>
     </div>
   </header>
 
   <section class="ms-sheet ms-install" id="install" hidden>
-    <h2 class="ms-label">Install the app</h2>
-    <p class="ms-help">Add it to your home screen and open it like any other app.</p>
-    <button class="ms-btn" id="install-btn">Install</button>
+    <h2>Install {{ shop_name }}</h2>
+    <p class="ms-help" id="install-help">Open it from your dock or home screen like any other app.</p>
+    <button class="ms-btn" id="install-btn" hidden>Install app</button>
   </section>
 
   <form class="ms-sheet ms-form" id="form">
@@ -68,44 +69,69 @@
 
 <script>
 const CSRF = "{{ csrf_token }}";
-const $ = (id) => document.getElementById(id);
+const byId = (id) => document.getElementById(id);
 
-$("save") && $("form").addEventListener("submit", async (event) => {
+byId("save") && byId("form").addEventListener("submit", async (event) => {
   event.preventDefault();
-  $("saved").textContent = "";
-  $("err").textContent = "";
-  $("save").disabled = true;
+  byId("saved").textContent = "";
+  byId("err").textContent = "";
+  byId("save").disabled = true;
   try {
     const res = await fetch("/api/method/my_shop.api.save_app_settings", {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-Frappe-CSRF-Token": CSRF },
-      body: JSON.stringify({ shop_name: $("shop_name").value, upi_id: $("upi_id").value, speech_lang: $("speech_lang").value }),
+      body: JSON.stringify({ shop_name: byId("shop_name").value, upi_id: byId("upi_id").value, speech_lang: byId("speech_lang").value }),
     });
     const body = await res.json();
     if (!res.ok) {
       const messages = JSON.parse(body._server_messages || "[]").map((m) => JSON.parse(m).message);
       throw new Error(messages.join("\n") || "Could not save");
     }
-    $("saved").textContent = "Changes saved";
+    byId("saved").textContent = "Changes saved";
   } catch (e) {
-    $("err").textContent = e.message;
+    byId("err").textContent = e.message;
   } finally {
-    $("save").disabled = false;
+    byId("save").disabled = false;
   }
 });
 
 let installPrompt = null;
+const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone;
+const ua = navigator.userAgent;
+const isSafari = /safari/i.test(ua) && !/chrome|chromium|crios|android|edg/i.test(ua);
+const isFirefox = /firefox|fxios/i.test(ua);
+const isIos = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+const isEdge = /edg\//i.test(ua);
+const isAndroid = /android/i.test(ua);
+
+if (!standalone) {
+  let help = "Click the <b>install icon</b> at the right end of the address bar, or open the <b>⋮</b> menu → <b>Cast, save and share</b> → <b>Install page as app</b>.";
+  if (isSafari && isIos) help = "Tap the <b>Share</b> button, then <b>Add to Home Screen</b>.";
+  else if (isSafari) help = "In the menu bar choose <b>File</b> → <b>Add to Dock</b>. Needs macOS Sonoma or later.";
+  else if (isFirefox) help = "Firefox cannot install apps. Open this page in <b>Chrome</b>, <b>Edge</b> or <b>Safari</b> to install it.";
+  else if (isEdge) help = "Open the <b>…</b> menu → <b>Apps</b> → <b>Install this site as an app</b>.";
+  else if (isAndroid) help = "Open the <b>⋮</b> menu → <b>Add to Home screen</b> or <b>Install app</b>.";
+  byId("install-help").innerHTML = help;
+  byId("install").hidden = false;
+}
+
 window.addEventListener("beforeinstallprompt", (event) => {
   event.preventDefault();
   installPrompt = event;
-  $("install").hidden = false;
+  byId("install-help").textContent = "Open it from your dock or home screen like any other app.";
+  byId("install-btn").hidden = false;
+  byId("install").hidden = false;
 });
-$("install-btn").addEventListener("click", async () => {
+byId("install-btn").addEventListener("click", async () => {
   if (!installPrompt) return;
   installPrompt.prompt();
   await installPrompt.userChoice;
   installPrompt = null;
-  $("install").hidden = true;
+  byId("install").hidden = true;
+});
+window.addEventListener("appinstalled", () => {
+  byId("install").hidden = true;
 });
 </script>
 {% endblock %}

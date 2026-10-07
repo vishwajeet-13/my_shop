@@ -9,46 +9,62 @@
   <header class="ms-head">
     <div class="ms-logo">{{ (shop_name or "M")[0] | upper }}</div>
     <div>
-      <h1 class="ms-title">{{ shop_name }}</h1>
-      <p class="ms-tag">Voice billing</p>
+      <p class="ms-eyebrow" data-today>{{ shop_name }}</p>
+      <h1 class="ms-title">New bill</h1>
     </div>
   </header>
 
-  <a class="ms-hero" href="/khata" id="hero" hidden>
-    <div><small>Today's sales</small><b data-slot="today">₹0</b></div>
-    <div class="ms-hero-side" data-slot="today-side"></div>
-  </a>
+  <div class="ms-split">
+    <div class="ms-main">
+      <a class="ms-hero" href="/khata" id="hero" hidden>
+        <div><small>Today's sales</small><b data-slot="today">₹0</b></div>
+        <div class="ms-hero-side" data-slot="today-side"></div>
+      </a>
 
-  <section class="ms-sheet ms-stage">
-    <button id="mic" class="ms-mic" aria-label="Start listening">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7"/>
-      </svg>
-    </button>
-    <p class="ms-hint" id="hint">Tap to speak</p>
-    <div class="ms-ways">
-      <p class="ms-ways-title">Examples</p>
-      <button class="ms-way" type="button" data-say="5 nut bolt, 2 kg wire nail"><span>Numbers</span>“5 nut bolt, 2 kg wire nail”</button>
-      <button class="ms-way" type="button" data-say="two dozen washer and one claw hammer"><span>Words</span>“two dozen washer and one claw hammer”</button>
-      <button class="ms-way" type="button" data-say="paanch nut bolt aur do hammer"><span>Hindi</span>“paanch nut bolt aur do hammer”</button>
+      <section class="ms-sheet ms-stage">
+        <button id="mic" class="ms-mic" aria-label="Start listening">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7"/>
+          </svg>
+        </button>
+        <span class="ms-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+        <p class="ms-hint" id="hint">Tap to speak</p>
+        <div class="ms-ways">
+          <p class="ms-ways-title">Try saying</p>
+          <button class="ms-way" type="button" data-say="5 nut bolt, 2 kg wire nail"><span>Numbers</span>5 nut bolt, 2 kg wire nail</button>
+          <button class="ms-way" type="button" data-say="two dozen washer and one claw hammer"><span>Words</span>two dozen washer and one claw hammer</button>
+          <button class="ms-way" type="button" data-say="paanch nut bolt aur do hammer"><span>Hindi</span>paanch nut bolt aur do hammer</button>
+        </div>
+      </section>
+
+      <section class="ms-sheet">
+        <label class="ms-label" for="tx">Order</label>
+        <textarea id="tx" class="ms-tx" placeholder="Or type the order here"></textarea>
+        <button id="go" class="ms-btn">Review bill</button>
+        <div class="ms-err" id="err"></div>
+      </section>
     </div>
-  </section>
 
-  <section class="ms-sheet">
-    <label class="ms-label" for="tx">Order</label>
-    <textarea id="tx" class="ms-tx" placeholder="Or type the order here"></textarea>
-    <button id="go" class="ms-btn">Review bill</button>
-    <div class="ms-err" id="err"></div>
-  </section>
-
-  <section class="ms-sheet" id="out" style="display:none"></section>
+    <div class="ms-side">
+      <div class="ms-billph" id="billph">
+        <h2>Your bill appears here</h2>
+        <p>Speak or type an order to start.</p>
+        <ol class="ms-steps">
+          <li>Say the items and quantities</li>
+          <li>Check the rates and add anything missing</li>
+          <li>Pick how they pay and create the bill</li>
+        </ol>
+      </div>
+      <section class="ms-sheet" id="out" hidden></section>
+    </div>
+  </div>
 </div>
 {% set tab = "bill" %}{% include "templates/includes/my_shop_tabs.html" %}
 
 <script>
 const CSRF = "{{ csrf_token }}";
 const LANG = "{{ speech_lang }}";
-const $ = (id) => document.getElementById(id);
+const byId = (id) => document.getElementById(id);
 const ICONS = { cash: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/></svg>`, upi: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3M21 14v.01M14 21h3M21 18v3h-.01"/></svg>`, credit: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>` };
 
 async function call(method, args) {
@@ -71,8 +87,8 @@ const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recogniser = null;
 
 if (!Recognition) {
-  $("hint").textContent = "Voice needs Chrome. Type the order instead.";
-  $("mic").disabled = true;
+  byId("hint").textContent = "Voice needs Chrome. Type the order instead.";
+  byId("mic").disabled = true;
 } else {
   recogniser = new Recognition();
   recogniser.lang = LANG;
@@ -80,36 +96,36 @@ if (!Recognition) {
   recogniser.continuous = false;
 
   recogniser.onstart = () => {
-    $("mic").classList.remove("fault");
-    $("mic").classList.add("live");
-    $("hint").classList.add("live");
-    $("hint").textContent = "Listening…";
+    byId("mic").classList.remove("fault");
+    byId("mic").classList.add("live");
+    byId("hint").classList.add("live");
+    byId("hint").textContent = "Listening…";
   };
   recogniser.onresult = (event) => {
     let text = "";
     for (const result of event.results) text += result[0].transcript;
-    $("tx").value = text;
+    byId("tx").value = text;
   };
   recogniser.onerror = (event) => {
-    $("mic").classList.add("fault");
-    $("hint").textContent = "Mic error (" + event.error + "). Type instead.";
+    byId("mic").classList.add("fault");
+    byId("hint").textContent = "Mic error (" + event.error + "). Type instead.";
   };
   recogniser.onend = () => {
-    $("mic").classList.remove("live");
-    $("hint").classList.remove("live");
-    if ($("hint").classList.contains("live") || $("hint").textContent.startsWith("Listening")) $("hint").textContent = "Tap to speak again";
+    byId("mic").classList.remove("live");
+    byId("hint").classList.remove("live");
+    if (byId("hint").classList.contains("live") || byId("hint").textContent.startsWith("Listening")) byId("hint").textContent = "Tap to speak again";
   };
 
-  $("mic").onclick = () => {
-    $("err").textContent = "";
-    if ($("mic").classList.contains("live")) return recogniser.stop();
-    $("tx").value = "";
+  byId("mic").onclick = () => {
+    byId("err").textContent = "";
+    if (byId("mic").classList.contains("live")) return recogniser.stop();
+    byId("tx").value = "";
     try { recogniser.start(); } catch (e) { /* already running */ }
   };
 }
 
 document.querySelectorAll(".ms-way").forEach((way) => {
-  way.onclick = () => { $("tx").value = way.dataset.say; $("tx").focus(); };
+  way.onclick = () => { byId("tx").value = way.dataset.say; byId("tx").focus(); };
 });
 
 let lastTranscript = "";
@@ -120,24 +136,29 @@ function esc(v) {
 }
 function money(n) { return "₹" + (Number(n) || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 function busy(on, label) {
-  $("go").disabled = on;
-  $("go").textContent = on ? (label || "Working…") : "Review bill";
+  byId("go").disabled = on;
+  byId("go").textContent = on ? (label || "Working…") : "Review bill";
+}
+function showBill(on) {
+  byId("out").hidden = !on;
+  byId("billph").hidden = on;
+  if (on && matchMedia("(max-width: 959px)").matches) byId("out").scrollIntoView({ behavior: "smooth" });
 }
 function panelError(message) {
-  const slot = $("out").querySelector('[data-slot="err"]');
-  if (slot) slot.textContent = message; else $("err").textContent = message;
+  const slot = byId("out").querySelector('[data-slot="err"]');
+  if (slot) slot.textContent = message; else byId("err").textContent = message;
 }
 
-$("go").onclick = async () => {
-  const transcript = $("tx").value.trim();
-  $("err").textContent = "";
-  if (!transcript) { $("err").textContent = "Say or type an order first."; return; }
+byId("go").onclick = async () => {
+  const transcript = byId("tx").value.trim();
+  byId("err").textContent = "";
+  if (!transcript) { byId("err").textContent = "Say or type an order first."; return; }
   lastTranscript = transcript;
   busy(true, "Checking…");
   try {
     renderEditor(await call("preview", { transcript }));
   } catch (e) {
-    $("err").textContent = e.message;
+    byId("err").textContent = e.message;
   } finally {
     busy(false);
   }
@@ -174,12 +195,13 @@ function renderEditor(review) {
       </div>
     </div>`).join("");
 
-  $("out").innerHTML = grid + missing + checkoutHtml() + `
+  const count = review.rows.length;
+  const head = `<div class="ms-rhead"><b>Bill</b><span>${count} item${count === 1 ? "" : "s"}</span></div>`;
+  byId("out").innerHTML = head + grid + missing + checkoutHtml() + `
     <button class="ms-btn green" data-act="create">Create bill</button>
     <div class="ms-err" data-slot="err"></div>`;
-  $("out").style.display = "block";
+  showBill(true);
   recalc();
-  $("out").scrollIntoView({ behavior: "smooth" });
 }
 
 const checkout = { customer: null, mode: "Cash", discount: 0, payable: 0 };
@@ -212,7 +234,7 @@ function checkoutHtml() {
 }
 
 function rerenderCheckout() {
-  const box = $("out").querySelector(".ms-checkout");
+  const box = byId("out").querySelector(".ms-checkout");
   if (!box) return;
   box.outerHTML = checkoutHtml();
   qrKey = "";
@@ -235,7 +257,7 @@ function pickCustomer(customer) {
 function searchCustomers(text) {
   clearTimeout(searchTimer);
   searchTimer = setTimeout(async () => {
-    const slot = $("out").querySelector('[data-slot="found"]');
+    const slot = byId("out").querySelector('[data-slot="found"]');
     if (!slot) return;
     const query = text.trim();
     if (!query) { slot.innerHTML = ""; return; }
@@ -272,7 +294,7 @@ async function saveCustomer(button) {
 }
 
 function refreshQr() {
-  const slot = $("out").querySelector('[data-slot="qr"]');
+  const slot = byId("out").querySelector('[data-slot="qr"]');
   if (!slot) return;
   if (checkout.mode !== "UPI" || !checkout.payable) { slot.innerHTML = ""; qrKey = ""; return; }
   const key = checkout.payable.toFixed(2);
@@ -292,38 +314,38 @@ function refreshQr() {
 
 function recalc() {
   let total = 0;
-  $("out").querySelectorAll(".ms-line").forEach((tr) => {
+  byId("out").querySelectorAll(".ms-line").forEach((tr) => {
     const amount = (Number(tr.querySelector(".q").value) || 0) * (Number(tr.querySelector(".r").value) || 0);
     total += amount;
     tr.querySelector(".ms-amt").textContent = money(amount);
   });
-  const slot = $("out").querySelector('[data-slot="total"]');
+  const slot = byId("out").querySelector('[data-slot="total"]');
   if (slot) slot.textContent = money(total);
-  const discountBox = $("out").querySelector(".ms-discount");
+  const discountBox = byId("out").querySelector(".ms-discount");
   checkout.discount = discountBox ? Math.max(Number(discountBox.value) || 0, 0) : 0;
   checkout.payable = Math.max(total - checkout.discount, 0);
-  const payable = $("out").querySelector('[data-slot="payable"]');
+  const payable = byId("out").querySelector('[data-slot="payable"]');
   if (payable) payable.textContent = money(checkout.payable);
   refreshQr();
-  const create = $("out").querySelector('[data-act="create"]');
+  const create = byId("out").querySelector('[data-act="create"]');
   if (create) create.disabled = collectRows().length === 0;
 }
 
 function collectRows() {
-  return [...$("out").querySelectorAll(".ms-line")].map((tr) => ({
+  return [...byId("out").querySelectorAll(".ms-line")].map((tr) => ({
     item_code: tr.dataset.code,
     qty: Number(tr.querySelector(".q").value) || 0,
     rate: Number(tr.querySelector(".r").value) || 0,
   })).filter((r) => r.qty > 0);
 }
 
-$("out").addEventListener("input", (event) => {
+byId("out").addEventListener("input", (event) => {
   if (event.target.classList.contains("ms-custq")) return searchCustomers(event.target.value);
   if (event.target.closest(".ms-newcust")) return;
   recalc();
 });
 
-$("out").addEventListener("click", (event) => {
+byId("out").addEventListener("click", (event) => {
   const button = event.target.closest("[data-act]");
   if (!button) return;
   const act = button.dataset.act;
@@ -395,7 +417,8 @@ function renderInvoice(result) {
       <div class="ms-ar ms-mono ms-rate">${money(r.rate)}</div><div class="ms-ar ms-mono">${money(r.amount)}</div>
     </div>`).join("");
 
-  $("out").innerHTML = `
+  navigator.vibrate?.(result.outstanding > 0 ? [20, 60, 20] : 30);
+  byId("out").innerHTML = `
     <div class="ms-billed${result.outstanding > 0 ? " due" : ""}">
       <div class="ms-tick">${result.outstanding > 0 ? ICONS.credit : "✓"}</div>
       <div><p class="ms-ok">${result.outstanding > 0 ? "Billed on credit" : "Payment received"}</p><div class="ms-invno">${esc(result.name)}</div></div>
@@ -415,11 +438,10 @@ function renderInvoice(result) {
     </div>
     <a class="ms-btn wa ms-wa" href="${esc(result.whatsapp_url)}" target="_blank" rel="noopener">Share on WhatsApp</a>
     <div class="ms-err" data-slot="err"></div>`;
-  $("out").style.display = "block";
-  $("out").scrollIntoView({ behavior: "smooth" });
+  showBill(true);
   if (result.upi_link) {
     call("upi_qr", { amount: result.outstanding, note: result.name }).then((qr) => {
-      const slot = $("out").querySelector('[data-slot="billqr"]');
+      const slot = byId("out").querySelector('[data-slot="billqr"]');
       if (qr && slot) slot.innerHTML = qr.svg + `<div>Scan to pay ${money(result.outstanding)}</div>`;
     }).catch(() => {});
   }
@@ -429,10 +451,12 @@ async function loadToday() {
   try {
     const s = await call("my_shop.khata.today_summary", {});
     const c = s.collected || {};
-    $("hero").hidden = false;
-    $("hero").querySelector('[data-slot="today"]').textContent = money(s.total).replace(".00", "");
-    $("hero").querySelector('[data-slot="today-side"]').innerHTML =
-      `${s.bills} bills<br>Cash ${money(c.Cash).replace(".00", "")} · UPI ${money(c.UPI).replace(".00", "")}`;
+    byId("hero").hidden = false;
+    byId("hero").querySelector('[data-slot="today"]').textContent = money(s.total).replace(".00", "");
+    const short = (n) => money(n).replace(".00", "");
+    byId("hero").querySelector('[data-slot="today-side"]').innerHTML = s.bills
+      ? `<strong>${s.bills} bill${s.bills === 1 ? "" : "s"}</strong><br>Cash ${short(c.Cash)} · UPI ${short(c.UPI)}`
+      : `No sales yet.<br>The first bill starts the day.`;
   } catch (e) {}
 }
 loadToday();
@@ -443,11 +467,11 @@ function newOrder() {
   checkout.discount = 0;
   lastTranscript = "";
   lastInvoice = null;
-  $("tx").value = "";
-  $("err").textContent = "";
-  $("out").style.display = "none";
-  $("out").innerHTML = "";
-  $("hint").textContent = "Tap to speak the next order";
+  byId("tx").value = "";
+  byId("err").textContent = "";
+  showBill(false);
+  byId("out").innerHTML = "";
+  byId("hint").textContent = "Tap to speak the next order";
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 </script>

@@ -8,7 +8,7 @@ from werkzeug.wrappers import Response
 
 from frappe.website.page_renderers.base_renderer import BaseRenderer
 
-CACHE_VERSION = "my-shop-v3"
+CACHE_VERSION = "my-shop-v6"
 SHOP_CSS = Path(__file__).parent / "public" / "css" / "shop.css"
 
 
@@ -38,9 +38,9 @@ self.addEventListener("activate", (event) => {
 });
 
 const OFFLINE_PAGE = `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Offline</title><body style="margin:0;display:grid;place-items:center;min-height:100vh;background:#f5f6fa;color:#0f172a;font:18px system-ui;text-align:center">
+<title>Offline</title><body style="margin:0;display:grid;place-items:center;min-height:100vh;background:#0e0f11;color:#f4f4f5;font:18px Georgia,serif;text-align:center">
 <div><h1 style="margin:8px 0">You are offline</h1><p>Check your connection and try again.</p>
-<button onclick="location.reload()" style="font:700 18px system-ui;padding:14px 24px;border:0;border-radius:16px;background:#4f46e5;color:#fff">Retry</button></div>`;
+<button onclick="location.reload()" style="font:700 18px system-ui;padding:14px 24px;border:0;border-radius:16px;background:#a3e635;color:#111410">Retry</button></div>`;
 
 self.addEventListener("fetch", (event) => {
   const request = event.request;
@@ -94,9 +94,8 @@ def manifest() -> dict:
 		"start_url": "/voice",
 		"scope": "/",
 		"display": "standalone",
-		"orientation": "portrait",
-		"background_color": "#f5f6fa",
-		"theme_color": "#4f46e5",
+		"background_color": "#0e0f11",
+		"theme_color": "#0e0f11",
 		"lang": "en",
 		"icons": [
 			{"src": f"{icons}/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
