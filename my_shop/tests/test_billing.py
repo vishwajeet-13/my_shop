@@ -118,6 +118,57 @@ class TestBilling(IntegrationTestCase):
 		self.assertEqual(frappe.db.get_single_value("Shop Voice Settings", "speech_lang"), "hi-IN")
 
 
+class TestPermissions(IntegrationTestCase):
+	@classmethod
+	def setUpClass(cls):
+		super().setUpClass()
+		cls.outsider = "shop-outsider@example.com"
+		if not frappe.db.exists("User", cls.outsider):
+			frappe.get_doc({
+				"doctype": "User",
+				"email": cls.outsider,
+				"first_name": "Outsider",
+				"user_type": "Website User",
+				"send_welcome_email": 0,
+			}).insert(ignore_permissions=True)
+
+	def setUp(self):
+		frappe.set_user(self.outsider)
+
+	def tearDown(self):
+		frappe.set_user("Administrator")
+
+	def test_outsider_cannot_read_dues(self):
+		with self.assertRaises(frappe.PermissionError):
+			khata.dues()
+
+	def test_outsider_cannot_read_today_summary(self):
+		with self.assertRaises(frappe.PermissionError):
+			khata.today_summary()
+
+	def test_outsider_cannot_record_payment(self):
+		with self.assertRaises(frappe.PermissionError):
+			khata.receive_payment("Anyone", 10)
+
+	def test_outsider_cannot_add_item(self):
+		with self.assertRaises(frappe.PermissionError):
+			api.add_item(f"Sneaky {frappe.generate_hash(length=6)}", 10)
+
+	def test_outsider_cannot_preview_or_bill(self):
+		with self.assertRaises(frappe.PermissionError):
+			api.preview("two hammer")
+		with self.assertRaises(frappe.PermissionError):
+			api.create_invoice(frappe.as_json([{"item_code": "x", "qty": 1, "rate": 1}]))
+
+	def test_outsider_cannot_list_customer_bills(self):
+		with self.assertRaises(frappe.PermissionError):
+			khata.customer_bills("Anyone")
+
+	def test_outsider_cannot_make_upi_qr(self):
+		with self.assertRaises(frappe.PermissionError):
+			api.upi_qr(10)
+
+
 class TestPWA(IntegrationTestCase):
 	def test_manifest_points_at_the_app(self):
 		from my_shop.pwa import manifest

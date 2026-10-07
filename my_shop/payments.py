@@ -10,6 +10,10 @@ CASH, UPI, UDHAAR = "Cash", "UPI", "Udhaar"
 PAYMENT_MODES = (CASH, UPI, UDHAAR)
 
 
+def require(doctype: str, ptype: str = "read"):
+	frappe.has_permission(doctype, ptype, throw=True)
+
+
 def ensure_mode_of_payment(mode: str):
 	if not frappe.db.exists("Mode of Payment", mode):
 		frappe.get_doc({

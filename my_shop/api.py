@@ -5,7 +5,7 @@ from frappe import _
 from frappe.utils import flt
 
 from my_shop.parser import parse_and_match
-from my_shop.payments import CASH, PAYMENT_MODES, UDHAAR, record_payment, upi_link, upi_qr_svg, whatsapp_link
+from my_shop.payments import CASH, PAYMENT_MODES, UDHAAR, record_payment, require, upi_link, upi_qr_svg, whatsapp_link
 
 COMMON_UOMS = ("Nos", "Kg", "Meter", "Litre", "Packet", "Box", "Dozen")
 
@@ -37,6 +37,7 @@ def _rates(item_codes: list) -> dict:
 @frappe.whitelist()
 def preview(transcript: str):
 	"""What we heard, matched against the catalogue. Creates nothing."""
+	require("Sales Invoice", "create")
 	result = parse_and_match(transcript, _settings().item_group)
 
 	rates = _rates([r["item_code"] for r in result["rows"]])
@@ -56,6 +57,7 @@ def add_item(item_name: str, rate: float = 0, uom: str = "Nos"):
 	without a human confirming it. Items are non-stock by design: this is a
 	billing app, and a brand new item would have zero stock anyway.
 	"""
+	require("Sales Invoice", "create")
 	item_name = (item_name or "").strip()
 	if not item_name:
 		frappe.throw(_("Item needs a name"))
@@ -100,6 +102,7 @@ def create_invoice(rows: str, customer: str | None = None, payment_mode: str = C
 	Quantities and rates come from the grid, not from the transcript, so whatever
 	the shopkeeper corrected on screen is exactly what gets billed.
 	"""
+	require("Sales Invoice", "submit")
 	rows = frappe.parse_json(rows)
 	if not rows:
 		frappe.throw(_("Add at least one item"))
@@ -201,6 +204,7 @@ def _money(amount: float) -> str:
 
 @frappe.whitelist()
 def upi_qr(amount: float, note: str = ""):
+	require("Sales Invoice")
 	link = upi_link(amount, note or "Bill")
 	return {"link": link, "svg": upi_qr_svg(link)} if link else None
 
@@ -210,6 +214,7 @@ SPEECH_LANGUAGES = ("en-IN", "hi-IN", "en-US", "en-GB")
 
 @frappe.whitelist()
 def save_app_settings(shop_name: str, upi_id: str = "", speech_lang: str = "en-IN"):
+	require("Shop Voice Settings", "write")
 	if speech_lang not in SPEECH_LANGUAGES:
 		frappe.throw(_("Unknown speech language {0}").format(speech_lang))
 	upi_id = (upi_id or "").strip()
