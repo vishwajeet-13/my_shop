@@ -3,7 +3,7 @@ from frappe import _
 from frappe.query_builder.functions import Count, Min, Sum
 from frappe.utils import flt, fmt_money, getdate, nowdate
 
-from my_shop.payments import CASH, PAYMENT_MODES, UDHAAR, record_payment, upi_link, whatsapp_link
+from my_shop.payments import CASH, PAYMENT_MODES, UDHAAR, record_payment, require, upi_link, whatsapp_link
 
 
 def _settings():
@@ -12,6 +12,7 @@ def _settings():
 
 @frappe.whitelist()
 def find_customers(query: str = ""):
+	require("Customer")
 	query = (query or "").strip()
 	filters = {"disabled": 0}
 	or_filters = None
@@ -33,6 +34,7 @@ def find_customers(query: str = ""):
 
 @frappe.whitelist()
 def add_customer(customer_name: str, mobile_no: str = ""):
+	require("Customer", "create")
 	customer_name = (customer_name or "").strip()
 	mobile_no = "".join(ch for ch in (mobile_no or "") if ch.isdigit() or ch == "+")
 	if not customer_name:
@@ -80,6 +82,7 @@ def _outstanding_by_customer(customers: list | None = None) -> dict:
 
 @frappe.whitelist()
 def dues():
+	require("Sales Invoice")
 	outstanding = _outstanding_by_customer()
 	if not outstanding:
 		return []
@@ -127,6 +130,7 @@ def _money(amount: float) -> str:
 
 @frappe.whitelist()
 def customer_bills(customer: str):
+	require("Sales Invoice")
 	return frappe.get_all(
 		"Sales Invoice",
 		filters={"customer": customer, "docstatus": 1},
@@ -138,6 +142,7 @@ def customer_bills(customer: str):
 
 @frappe.whitelist()
 def receive_payment(customer: str, amount: float, mode: str = CASH):
+	require("Payment Entry", "create")
 	amount = flt(amount, 2)
 	if amount <= 0:
 		frappe.throw(_("Enter the amount received"))
@@ -168,6 +173,7 @@ def receive_payment(customer: str, amount: float, mode: str = CASH):
 
 @frappe.whitelist()
 def today_summary():
+	require("Sales Invoice")
 	settings = _settings()
 	today = nowdate()
 	invoice = frappe.qb.DocType("Sales Invoice")
