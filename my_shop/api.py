@@ -2,12 +2,14 @@ import re
 
 import frappe
 from frappe import _
-from frappe.utils import flt
+from frappe.utils import flt, getdate, now, nowdate
 
-from my_shop.parser import parse_and_match
+from my_shop.install import CLIENT_REF
+from my_shop.parser import get_shop_items, parse_and_match
 from my_shop.payments import CASH, PAYMENT_MODES, UDHAAR, record_payment, require, upi_link, upi_qr_svg, whatsapp_link
 
 COMMON_UOMS = ("Nos", "Kg", "Meter", "Litre", "Packet", "Box", "Dozen")
+OFFLINE_DAYS = 30
 
 
 def _settings():
@@ -96,13 +98,23 @@ def add_item(item_name: str, rate: float = 0, uom: str = "Nos"):
 
 
 @frappe.whitelist()
-def create_invoice(rows: str, customer: str | None = None, payment_mode: str = CASH, discount: float = 0):
+def create_invoice(
+	rows: str,
+	customer: str | None = None,
+	payment_mode: str = CASH,
+	discount: float = 0,
+	client_ref: str | None = None,
+	posting_date: str | None = None,
+):
 	"""Create the Sales Invoice from the rows as edited on the billing page.
 
 	Quantities and rates come from the grid, not from the transcript, so whatever
 	the shopkeeper corrected on screen is exactly what gets billed.
 	"""
 	require("Sales Invoice", "submit")
+	if client_ref and (existing := frappe.db.get_value("Sales Invoice", {CLIENT_REF: client_ref}, "name")):
+		return bill_summary(existing)
+
 	rows = frappe.parse_json(rows)
 	if not rows:
 		frappe.throw(_("Add at least one item"))
@@ -118,6 +130,11 @@ def create_invoice(rows: str, customer: str | None = None, payment_mode: str = C
 	invoice.customer = customer
 	invoice.company = settings.company
 	invoice.selling_price_list = _selling_price_list()
+	if client_ref:
+		invoice.set(CLIENT_REF, client_ref)
+	if posting_date:
+		invoice.set_posting_time = 1
+		invoice.posting_date = _bill_date(posting_date)
 	if settings.taxes_and_charges:
 		invoice.taxes_and_charges = settings.taxes_and_charges
 
@@ -149,9 +166,50 @@ def create_invoice(rows: str, customer: str | None = None, payment_mode: str = C
 		frappe.throw(_("Discount is more than the bill"))
 	invoice.submit()  # a spoken order is a real sale, not a draft awaiting review
 	if payment_mode != UDHAAR and invoice.outstanding_amount > 0:
-		record_payment(invoice.name, payment_mode)
+		record_payment(invoice.name, payment_mode, posting_date=invoice.posting_date)
 
 	return bill_summary(invoice.name)
+
+
+def _bill_date(value: str):
+	date, today = getdate(value), getdate(nowdate())
+	if date > today:
+		frappe.throw(_("Bill date cannot be in the future"))
+	if (today - date).days > OFFLINE_DAYS:
+		frappe.throw(_("Bills saved offline must sync within {0} days").format(OFFLINE_DAYS))
+	return date
+
+
+@frappe.whitelist()
+def offline_data():
+	"""Everything the billing page needs to keep working without a connection."""
+	require("Sales Invoice", "create")
+	require("Customer")
+	from my_shop.khata import _outstanding_by_customer
+
+	settings = _settings()
+	items = get_shop_items(settings.item_group)
+	rates = _rates([item.name for item in items])
+	dues = _outstanding_by_customer()
+	customers = frappe.get_all(
+		"Customer",
+		filters={"disabled": 0},
+		fields=["name", "customer_name", "mobile_no"],
+		order_by="modified desc",
+		limit=2000,
+	)
+	return {
+		"items": [
+			{"name": i.name, "item_name": i.item_name, "description": i.description, "stock_uom": i.stock_uom, "rate": rates.get(i.name, 0)}
+			for i in items
+		],
+		"customers": [{**c, "due": dues.get(c.name, 0)} for c in customers],
+		"uoms": list(COMMON_UOMS),
+		"currency": frappe.db.get_default("currency") or "INR",
+		"shop_name": settings.shop_name,
+		"upi_id": settings.upi_id,
+		"fetched_at": now(),
+	}
 
 
 def bill_summary(name: str) -> dict:

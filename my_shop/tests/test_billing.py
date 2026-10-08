@@ -112,6 +112,32 @@ class TestBilling(IntegrationTestCase):
 		with self.assertRaises(frappe.ValidationError):
 			api.save_app_settings("Shop", "not-a-upi-id")
 
+	def test_same_client_ref_creates_one_bill(self):
+		ref = frappe.generate_hash(length=16)
+		first = self._bill(client_ref=ref)
+		again = self._bill(client_ref=ref)
+		self.assertEqual(first["name"], again["name"])
+		self.assertEqual(frappe.db.count("Sales Invoice", {"my_shop_client_ref": ref}), 1)
+
+	def test_offline_bill_keeps_its_date(self):
+		yesterday = frappe.utils.add_days(frappe.utils.nowdate(), -1)
+		bill = self._bill(client_ref=frappe.generate_hash(length=16), posting_date=yesterday)
+		self.assertEqual(str(frappe.db.get_value("Sales Invoice", bill["name"], "posting_date")), yesterday)
+		payment = frappe.get_all("Payment Entry Reference", filters={"reference_name": bill["name"]}, pluck="parent")[0]
+		self.assertEqual(str(frappe.db.get_value("Payment Entry", payment, "posting_date")), yesterday)
+
+	def test_future_posting_date_is_refused(self):
+		with self.assertRaises(frappe.ValidationError):
+			self._bill(posting_date=frappe.utils.add_days(frappe.utils.nowdate(), 1))
+
+	def test_offline_data_has_items_with_rates_and_customers(self):
+		customer = self._customer("9811122233")
+		data = api.offline_data()
+		item = next(i for i in data["items"] if i["name"] == self.item)
+		self.assertIn("rate", item)
+		self.assertIn(customer, [c["name"] for c in data["customers"]])
+		self.assertIn("uoms", data)
+
 	def test_settings_save_upi_id(self):
 		saved = api.save_app_settings("Test Shop", "test.shop@okaxis", "hi-IN")
 		self.assertEqual(saved["upi_id"], "test.shop@okaxis")
@@ -163,6 +189,10 @@ class TestPermissions(IntegrationTestCase):
 	def test_outsider_cannot_list_customer_bills(self):
 		with self.assertRaises(frappe.PermissionError):
 			khata.customer_bills("Anyone")
+
+	def test_outsider_cannot_download_offline_data(self):
+		with self.assertRaises(frappe.PermissionError):
+			api.offline_data()
 
 	def test_outsider_cannot_make_upi_qr(self):
 		with self.assertRaises(frappe.PermissionError):

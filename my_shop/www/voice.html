@@ -67,14 +67,23 @@ const LANG = "{{ speech_lang }}";
 const byId = (id) => document.getElementById(id);
 const ICONS = { cash: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/></svg>`, upi: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3M21 14v.01M14 21h3M21 18v3h-.01"/></svg>`, credit: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>` };
 
+class Offline extends Error {}
+const Store = window.MyShopOffline;
+
 async function call(method, args) {
   const path = method.includes(".") ? method : "my_shop.api." + method;
-  const res = await fetch("/api/method/" + path, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "X-Frappe-CSRF-Token": CSRF },
-    body: JSON.stringify(args),
-  });
-  const body = await res.json();
+  if (!navigator.onLine) throw new Offline("You are offline");
+  let res;
+  try {
+    res = await fetch("/api/method/" + path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Frappe-CSRF-Token": CSRF },
+      body: JSON.stringify(args),
+    });
+  } catch (e) {
+    throw new Offline("You are offline");
+  }
+  const body = await res.json().catch(() => ({}));
   if (!res.ok) {
     const messages = JSON.parse(body._server_messages || "[]")
       .map((m) => JSON.parse(m).message);
@@ -108,7 +117,9 @@ if (!Recognition) {
   };
   recogniser.onerror = (event) => {
     byId("mic").classList.add("fault");
-    byId("hint").textContent = "Mic error (" + event.error + "). Type instead.";
+    byId("hint").textContent = event.error === "network"
+      ? "Voice needs internet. Type the order below."
+      : "Mic error (" + event.error + "). Type instead.";
   };
   recogniser.onend = () => {
     byId("mic").classList.remove("live");
@@ -119,6 +130,11 @@ if (!Recognition) {
   byId("mic").onclick = () => {
     byId("err").textContent = "";
     if (byId("mic").classList.contains("live")) return recogniser.stop();
+    if (!navigator.onLine) {
+      byId("hint").textContent = "Voice needs internet. Type the order below.";
+      byId("tx").focus();
+      return;
+    }
     byId("tx").value = "";
     try { recogniser.start(); } catch (e) { /* already running */ }
   };
@@ -154,15 +170,40 @@ byId("go").onclick = async () => {
   byId("err").textContent = "";
   if (!transcript) { byId("err").textContent = "Say or type an order first."; return; }
   lastTranscript = transcript;
+  checkout.ref = Store.newRef();
   busy(true, "Checking…");
   try {
-    renderEditor(await call("preview", { transcript }));
+    renderEditor(await preview(transcript));
   } catch (e) {
     byId("err").textContent = e.message;
   } finally {
     busy(false);
   }
 };
+
+async function preview(transcript) {
+  try {
+    return await call("preview", { transcript });
+  } catch (e) {
+    if (!(e instanceof Offline)) throw e;
+    const data = Store.loadData();
+    if (!data) throw new Error("You are offline. Open the app once with internet so it can bill offline.");
+    return { ...Store.parseAndMatch(transcript, data.items), uoms: data.uoms, currency: data.currency };
+  }
+}
+
+function cachedCustomers(query) {
+  const q = query.toLowerCase();
+  return ((Store.loadData() || {}).customers || [])
+    .filter((c) => (c.customer_name || "").toLowerCase().includes(q) || (c.mobile_no || "").includes(q))
+    .slice(0, 8);
+}
+
+async function refreshOfflineData() {
+  try {
+    Store.saveData(await call("offline_data", {}));
+  } catch (e) {}
+}
 
 /* The bill is edited here, not in Desk. Quantities and rates are live inputs,
    rows can be dropped, and whatever is on screen is what gets billed. */
@@ -204,7 +245,7 @@ function renderEditor(review) {
   recalc();
 }
 
-const checkout = { customer: null, mode: "Cash", discount: 0, payable: 0 };
+const checkout = { customer: null, mode: "Cash", discount: 0, payable: 0, ref: null };
 let foundCustomers = [];
 let searchTimer = null;
 let qrKey = "";
@@ -263,7 +304,10 @@ function searchCustomers(text) {
     if (!query) { slot.innerHTML = ""; return; }
     try {
       foundCustomers = await call("my_shop.khata.find_customers", { query });
-    } catch (e) { panelError(e.message); return; }
+    } catch (e) {
+      if (!(e instanceof Offline)) { panelError(e.message); return; }
+      foundCustomers = cachedCustomers(query);
+    }
     const isPhone = /^[+\d\s]{6,}$/.test(query);
     slot.innerHTML = foundCustomers.map((c, i) => `
       <button type="button" class="ms-hit" data-act="pick" data-i="${i}">
@@ -288,7 +332,7 @@ async function saveCustomer(button) {
       customer_name, mobile_no: box.querySelector(".nc-mobile").value.trim(),
     }));
   } catch (e) {
-    panelError(e.message);
+    panelError(e instanceof Offline ? "Adding a customer needs internet. Pick an existing customer or bill as walk-in." : e.message);
     button.disabled = false;
   }
 }
@@ -308,7 +352,10 @@ function refreshQr() {
       slot.innerHTML = qr
         ? qr.svg + `<div>Scan to pay ${money(checkout.payable)}</div>`
         : `<div class="ms-muted">Add your UPI ID in <a href="/shop-settings">Settings</a> to show a payment QR.</div>`;
-    } catch (e) { slot.innerHTML = ""; }
+    } catch (e) {
+      const upi = e instanceof Offline && (Store.loadData() || {}).upi_id;
+      slot.innerHTML = upi ? `<div class="ms-muted">Offline: ask them to pay ${money(checkout.payable)} to <b>${esc(upi)}</b>.</div>` : "";
+    }
   }, 300);
 }
 
@@ -334,6 +381,7 @@ function recalc() {
 function collectRows() {
   return [...byId("out").querySelectorAll(".ms-line")].map((tr) => ({
     item_code: tr.dataset.code,
+    item_name: tr.querySelector(".ms-gname").textContent,
     qty: Number(tr.querySelector(".q").value) || 0,
     rate: Number(tr.querySelector(".r").value) || 0,
   })).filter((r) => r.qty > 0);
@@ -384,7 +432,7 @@ async function quickAdd(button) {
     });
     renderEditor(review);
   } catch (e) {
-    panelError(e.message);
+    panelError(e instanceof Offline ? "Adding a new item needs internet. Remove it from the order for now." : e.message);
     button.disabled = false;
     button.textContent = "Add item";
   }
@@ -393,19 +441,55 @@ async function quickAdd(button) {
 async function confirmCreate() {
   const rows = collectRows();
   if (!rows.length) { panelError("Nothing to bill."); return; }
+  const args = {
+    rows: JSON.stringify(rows.map(({ item_code, qty, rate }) => ({ item_code, qty, rate }))),
+    customer: checkout.customer ? checkout.customer.name : null,
+    payment_mode: checkout.mode,
+    discount: checkout.discount,
+    client_ref: checkout.ref,
+  };
   busy(true, "Creating…");
   try {
-    renderInvoice(await call("create_invoice", {
-      rows: JSON.stringify(rows),
-      customer: checkout.customer ? checkout.customer.name : null,
-      payment_mode: checkout.mode,
-      discount: checkout.discount,
-    }));
+    renderInvoice(await call("create_invoice", args));
   } catch (e) {
-    panelError(e.message);
+    if (e instanceof Offline) saveOffline(args, rows);
+    else panelError(e.message);
   } finally {
     busy(false);
   }
+}
+
+function saveOffline(args, rows) {
+  args = { ...args, posting_date: Store.localDate() };
+  const bill = {
+    client_ref: args.client_ref,
+    posting_date: args.posting_date,
+    customer_name: checkout.customer ? checkout.customer.customer_name : "Walk-in customer",
+    total: checkout.payable,
+    args,
+  };
+  if (!Store.outbox.add(bill)) { panelError("Could not save the bill on this device. Free some browser storage and try again."); return; }
+  MyShopSync.render();
+  navigator.vibrate?.([20, 60, 20]);
+  const body = rows.map((r) => `
+    <div class="ms-grow ms-done">
+      <div class="ms-mono ms-q">${r.qty}</div><div class="ms-gname">${esc(r.item_name)}</div>
+      <div class="ms-ar ms-mono ms-rate">${money(r.rate)}</div><div class="ms-ar ms-mono">${money(r.qty * r.rate)}</div>
+    </div>`).join("");
+  byId("out").innerHTML = `
+    <div class="ms-billed ms-queued">
+      <div class="ms-tick">${ICONS.credit}</div>
+      <div><p class="ms-ok">Saved offline</p><div class="ms-invno">Uploads by itself when you are back online</div></div>
+    </div>
+    <div class="ms-ghead ms-done"><div>Qty</div><div>Item</div><div class="ms-ar ms-rate">Rate</div><div class="ms-ar">Amount</div></div>
+    ${body}
+    ${checkout.discount ? `<div class="ms-sumline"><span>Discount</span><span class="ms-mono">−${money(checkout.discount)}</span></div>` : ""}
+    <div class="ms-total"><span>Total</span><span class="ms-mono">${money(checkout.payable)}</span></div>
+    <p class="ms-paidnote">${esc(bill.customer_name)} · ${checkout.mode === "Udhaar" ? `<b class="ms-due">on credit</b>` : `Paid by ${esc(checkout.mode)}`}. Any tax is added when it uploads.</p>
+    <div class="ms-actions">
+      <button class="ms-btn" data-act="new">New bill</button>
+    </div>`;
+  showBill(true);
 }
 
 function renderInvoice(result) {
@@ -460,8 +544,12 @@ async function loadToday() {
   } catch (e) {}
 }
 loadToday();
+refreshOfflineData();
+window.addEventListener("online", refreshOfflineData);
+window.addEventListener("my-shop:synced", loadToday);
 
 function newOrder() {
+  checkout.ref = null;
   checkout.customer = null;
   checkout.mode = "Cash";
   checkout.discount = 0;

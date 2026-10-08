@@ -107,7 +107,7 @@ required_apps = ["erpnext"]
 # ------------
 
 # before_install = "my_shop.install.before_install"
-# after_install = "my_shop.install.after_install"
+after_install = "my_shop.install.after_install"
 
 # Uninstallation
 # ------------
@@ -310,4 +310,4 @@ doctype_js = {"Sales Invoice": "public/js/sales_invoice.js"}
 
 page_renderer = ["my_shop.pwa.PWARenderer"]
 
-jinja = {"methods": ["my_shop.pwa.shop_css_version"]}
+jinja = {"methods": ["my_shop.pwa.asset_version"]}

@@ -9,7 +9,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Instrument+Sans:wght@400..700&display=swap">
-<link rel="stylesheet" href="/assets/my_shop/css/shop.css?v={{ shop_css_version() }}">
+<link rel="stylesheet" href="/assets/my_shop/css/shop.css?v={{ asset_version('css/shop.css') }}">
+<script src="/assets/my_shop/js/offline.js?v={{ asset_version('js/offline.js') }}"></script>
 <script>
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));
@@ -22,5 +23,67 @@
     sync();
     const today = new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" });
     document.querySelectorAll("[data-today]").forEach((el) => { el.textContent = today; });
+    MyShopSync.run();
   });
+
+  window.MyShopSync = (() => {
+    const esc = (v) => String(v ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    const money = (n) => "₹" + (Number(n) || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    let signin = false;
+    let running = false;
+
+    function render() {
+      const bar = document.getElementById("ms-sync");
+      if (!bar) return;
+      const bills = MyShopOffline.outbox.all();
+      const waiting = bills.filter((b) => !b.error);
+      const failed = bills.filter((b) => b.error);
+      bar.hidden = !bills.length;
+      if (!bills.length) return;
+      const plural = (n) => `${n} bill${n === 1 ? "" : "s"}`;
+      let head = "";
+      if (waiting.length) {
+        head = signin
+          ? `<p><b>${plural(waiting.length)} saved offline.</b> Sign in again to upload them. <a href="/login?redirect-to=${encodeURIComponent(location.pathname)}">Sign in</a></p>`
+          : navigator.onLine
+            ? `<p><b>Uploading ${plural(waiting.length)} saved offline…</b> <button type="button" data-sync="now">Retry now</button></p>`
+            : `<p><b>${plural(waiting.length)} saved offline.</b> They upload by themselves when you are back online.</p>`;
+      }
+      const list = failed.map((b) => `
+        <li><span><b>${esc(b.customer_name)}</b> · ${money(b.total)} · ${esc(b.posting_date)}<small>${esc(b.error)}</small></span>
+          <span><button type="button" data-sync="retry" data-ref="${esc(b.client_ref)}">Retry</button>
+          <button type="button" data-sync="discard" data-ref="${esc(b.client_ref)}">Discard</button></span></li>`).join("");
+      bar.innerHTML = head + (failed.length ? `<p><b>${plural(failed.length)} could not upload</b></p><ul>${list}</ul>` : "");
+    }
+
+    async function run() {
+      render();
+      if (running || !navigator.onLine || !window.frappe || !frappe.csrf_token) return;
+      if (!MyShopOffline.outbox.all().some((b) => !b.error)) return;
+      running = true;
+      try {
+        const result = await MyShopOffline.flush(frappe.csrf_token);
+        signin = result.signin;
+        if (result.synced) window.dispatchEvent(new CustomEvent("my-shop:synced", { detail: result }));
+      } finally {
+        running = false;
+        render();
+      }
+    }
+
+    document.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-sync]");
+      if (!button) return;
+      const ref = button.dataset.ref;
+      if (button.dataset.sync === "retry") MyShopOffline.outbox.update(ref, { error: null });
+      if (button.dataset.sync === "discard" && !confirm("Discard this bill? It was never uploaded, so it will be lost.")) return;
+      if (button.dataset.sync === "discard") MyShopOffline.outbox.remove(ref);
+      run();
+    });
+    window.addEventListener("online", run);
+    window.addEventListener("offline", render);
+    window.addEventListener("storage", (event) => { if (event.key === "my_shop.outbox") render(); });
+    setInterval(() => { if (MyShopOffline.outbox.all().some((b) => !b.error)) run(); }, 30000);
+    return { run, render };
+  })();
 </script>

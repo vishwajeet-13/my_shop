@@ -29,10 +29,12 @@ def _mode_account(mode: str, company: str) -> str | None:
 	)
 
 
-def record_payment(invoice_name: str, mode: str, amount: float | None = None):
+def record_payment(invoice_name: str, mode: str, amount: float | None = None, posting_date=None):
 	ensure_mode_of_payment(mode)
 	payment = get_payment_entry("Sales Invoice", invoice_name, party_amount=amount)
 	payment.mode_of_payment = mode
+	if posting_date:
+		payment.posting_date = posting_date
 	account = _mode_account(mode, payment.company)
 	if account and account != payment.paid_to:
 		payment.paid_to = account

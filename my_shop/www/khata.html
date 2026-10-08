@@ -136,6 +136,13 @@ byId("dues").addEventListener("click", async (event) => {
   }
 });
 
-Promise.all([loadSummary(), loadDues()]).catch((e) => { byId("err").textContent = e.message; });
+function load() {
+  return Promise.all([loadSummary(), loadDues()]).catch((e) => {
+    byId("err").textContent = navigator.onLine ? e.message : "You are offline. The ledger needs internet; bills saved offline are listed at the bottom.";
+  });
+}
+load();
+window.addEventListener("my-shop:synced", load);
+window.addEventListener("online", load);
 </script>
 {% endblock %}

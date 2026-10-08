@@ -46,3 +46,55 @@ class TestWhatsappLink(UnitTestCase):
 
 	def test_no_mobile_opens_contact_picker(self):
 		self.assertEqual(whatsapp_link(None, "a b"), "https://wa.me/?text=a%20b")
+
+
+class TestOfflineParserParity(UnitTestCase):
+	"""public/js/offline.js re-implements the parser for offline billing and must agree with it."""
+
+	transcripts = [
+		"five nut bolt and 3 wood screw",
+		"paanch nut bolt do dozen washer",
+		"twenty five nail",
+		"2 kg wire nail",
+		"bhaiya 1 hammer",
+		"teen claw hammer aur ek wood screw 2 inch",
+		"4 bananas and 2 hammer",
+		"",
+	]
+	items = TestMatchItem.items + [
+		{"name": "Wire Nail", "item_name": "Wire Nail", "description": "1 kg pack", "stock_uom": "Kg"},
+		{"name": "Nut Bolt M8", "item_name": "Nut Bolt M8", "description": "", "stock_uom": "Nos"},
+		{"name": "Washer", "item_name": "Washer", "description": "steel washer", "stock_uom": "Nos"},
+	]
+
+	def test_js_parser_matches_python(self):
+		import json
+		import shutil
+		import subprocess
+		from pathlib import Path
+
+		node = shutil.which("node")
+		if not node:
+			self.skipTest("node is not installed")
+
+		script = Path(__file__).parents[1] / "public" / "js" / "offline.js"
+		runner = (
+			"const o = require(process.argv[1]);"
+			"const {transcripts, items} = JSON.parse(require('fs').readFileSync(0, 'utf8'));"
+			"console.log(JSON.stringify(transcripts.map((t) => ({"
+			"segments: o.parseTranscript(t),"
+			"matches: o.parseTranscript(t).map((s) => o.matchItem(s.phrase, items))}))));"
+		)
+		out = subprocess.run(
+			[node, "-e", runner, str(script)],
+			input=json.dumps({"transcripts": self.transcripts, "items": self.items}),
+			capture_output=True, text=True, check=True,
+		)
+		expected = [
+			{
+				"segments": parse_transcript(t),
+				"matches": [match_item(s["phrase"], self.items) for s in parse_transcript(t)],
+			}
+			for t in self.transcripts
+		]
+		self.assertEqual(json.loads(out.stdout), expected)

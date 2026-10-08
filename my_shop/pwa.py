@@ -8,12 +8,13 @@ from werkzeug.wrappers import Response
 
 from frappe.website.page_renderers.base_renderer import BaseRenderer
 
-CACHE_VERSION = "my-shop-v6"
-SHOP_CSS = Path(__file__).parent / "public" / "css" / "shop.css"
+CACHE_VERSION = "my-shop-v7"
+PUBLIC = Path(__file__).parent / "public"
 
 
-def shop_css_version() -> str:
-	return _file_hash(SHOP_CSS, SHOP_CSS.stat().st_mtime_ns)
+def asset_version(path: str) -> str:
+	file = PUBLIC / path
+	return _file_hash(file, file.stat().st_mtime_ns)
 
 
 @lru_cache(maxsize=8)
@@ -22,7 +23,7 @@ def _file_hash(path: Path, mtime_ns: int) -> str:
 
 SERVICE_WORKER = """
 const CACHE = "%(cache)s";
-const SHELL = ["/voice", "/khata", "/shop-settings", "/assets/my_shop/css/shop.css", "/assets/my_shop/icons/icon-192.png"];
+const SHELL = ["/voice", "/khata", "/shop-settings", "/assets/my_shop/css/shop.css", "/assets/my_shop/js/offline.js", "/assets/my_shop/icons/icon-192.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL).catch(() => {})));

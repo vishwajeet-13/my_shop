@@ -1,4 +1,5 @@
-<div class="ms-offline" id="ms-offline" hidden>You are offline. Bills will not save until you reconnect.</div>
+<div class="ms-offline" id="ms-offline" hidden>You are offline. Type orders and bill as usual; they upload when you reconnect.</div>
+<div class="ms-syncbar" id="ms-sync" role="status" aria-live="polite" hidden></div>
 <nav class="ms-tabs" aria-label="App">
   <a class="ms-brand" href="/voice"><span class="ms-logo">{{ (shop_name or "M")[0] | upper }}</span><span><b>{{ shop_name }}</b><small>Voice billing</small></span></a>
   <a class="ms-tab{% if tab == 'bill' %} on{% endif %}" href="/voice"{% if tab == 'bill' %} aria-current="page"{% endif %}><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 2v20l3-2 3 2 2-2 2 2 3-2 3 2V2l-3 2-3-2-2 2-2-2-3 2z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></i>Bill</a>
