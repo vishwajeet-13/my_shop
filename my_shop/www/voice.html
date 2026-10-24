@@ -5,67 +5,49 @@
 {% block style %}{% include "templates/includes/my_shop_head.html" %}{% endblock %}
 
 {% block content %}
-<div class="ms-wrap">
-  <header class="ms-head">
-    <div class="ms-logo">{{ (shop_name or "M")[0] | upper }}</div>
-    <div>
-      <p class="ms-eyebrow" data-today>{{ shop_name }}</p>
-      <h1 class="ms-title">New bill</h1>
-    </div>
+<div class="ms-reg" id="reg">
+  <header class="ms-reg-top">
+    <b>{{ shop_name }}</b>
+    <span data-slot="today"></span>
+    <a class="ms-icon" href="/khata" aria-label="Khata"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5V5a2 2 0 0 1 2-2h14v16H6.5A2.5 2.5 0 0 0 4 21.5v-2z"/><path d="M8 7h8M8 11h6"/></svg></a>
+    <a class="ms-icon" href="/shop-settings" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>
   </header>
 
-  <div class="ms-split">
-    <div class="ms-main">
-      <a class="ms-hero" href="/khata" id="hero" hidden>
-        <div><small>Today's sales</small><b data-slot="today">₹0</b></div>
-        <div class="ms-hero-side" data-slot="today-side"></div>
-      </a>
-
-      <section class="ms-sheet ms-stage">
-        <button id="mic" class="ms-mic" aria-label="Start listening">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7"/>
-          </svg>
-        </button>
-        <span class="ms-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
-        <p class="ms-hint" id="hint">Tap to speak</p>
-        <div class="ms-ways">
-          <p class="ms-ways-title">Try saying</p>
-          <button class="ms-way" type="button" data-say="5 nut bolt, 2 kg wire nail"><span>Numbers</span>5 nut bolt, 2 kg wire nail</button>
-          <button class="ms-way" type="button" data-say="two dozen washer and one claw hammer"><span>Words</span>two dozen washer and one claw hammer</button>
-          <button class="ms-way" type="button" data-say="paanch nut bolt aur do hammer"><span>Hindi</span>paanch nut bolt aur do hammer</button>
-        </div>
-      </section>
-
-      <section class="ms-sheet">
-        <label class="ms-label" for="tx">Order</label>
-        <textarea id="tx" class="ms-tx" placeholder="Or type the order here"></textarea>
-        <button id="go" class="ms-btn">Review bill</button>
-        <div class="ms-err" id="err"></div>
-      </section>
-    </div>
-
-    <div class="ms-side">
-      <div class="ms-billph" id="billph">
-        <h2>Your bill appears here</h2>
-        <p>Speak or type an order to start.</p>
-        <ol class="ms-steps">
-          <li>Say the items and quantities</li>
-          <li>Check the rates and add anything missing</li>
-          <li>Pick how they pay and create the bill</li>
-        </ol>
-      </div>
-      <section class="ms-sheet" id="out" hidden></section>
-    </div>
+  <div class="ms-reg-sum">
+    <p id="meta">Ready</p>
+    <b class="ms-mono" id="total">₹0.00</b>
   </div>
+
+  <div class="ms-reg-list">
+    <form class="ms-reg-type" id="typeform">
+      <input id="tx" class="ms-field" placeholder="Type an order" autocomplete="off" enterkeyhint="go">
+      <button class="ms-mini ghost" id="add">Add</button>
+    </form>
+    <div class="ms-err ms-reg-pad" id="err"></div>
+    <div id="out"></div>
+  </div>
+
+  <footer class="ms-reg-dock">
+    <div class="ms-modes" id="modes"></div>
+    <div class="ms-reg-go">
+      <button id="mic" class="ms-reg-mic" aria-label="Start listening">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7"/>
+        </svg>
+      </button>
+      <button id="go" class="ms-btn ms-reg-charge" disabled>Charge</button>
+    </div>
+  </footer>
 </div>
-{% set tab = "bill" %}{% include "templates/includes/my_shop_tabs.html" %}
+{% include "templates/includes/my_shop_banners.html" %}
 
 <script>
 const CSRF = "{{ csrf_token }}";
 const LANG = "{{ speech_lang }}";
 const byId = (id) => document.getElementById(id);
 const ICONS = { cash: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/></svg>`, upi: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3M21 14v.01M14 21h3M21 18v3h-.01"/></svg>`, credit: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>` };
+const MODES = [["Cash", ICONS.cash], ["UPI", ICONS.upi], ["Udhaar", ICONS.credit]];
+const SAYINGS = [["Numbers", "5 nut bolt, 2 kg wire nail"], ["Words", "two dozen washer and one claw hammer"], ["Hindi", "paanch nut bolt aur do hammer"]];
 
 class Offline extends Error {}
 const Store = window.MyShopOffline;
@@ -92,94 +74,94 @@ async function call(method, args) {
   return body.message;
 }
 
+function esc(v) {
+  return String(v ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+}
+const RUPEES = new Intl.NumberFormat("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+function money(n) { return "₹" + RUPEES.format(Number(n) || 0); }
+function setError(message) { byId("err").textContent = message || ""; }
+
+const bill = { lines: [], unmatched: [], uoms: [], customer: null, mode: "Cash", discount: 0, payable: 0, ref: null, done: false };
+let foundCustomers = [];
+let searchTimer = null;
+let qrKey = "";
+let lastInvoice = null;
+let heard = "";
+
 const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-let recogniser = null;
 
 if (!Recognition) {
-  byId("hint").textContent = "Voice needs Chrome. Type the order instead.";
   byId("mic").disabled = true;
+  byId("tx").placeholder = "Voice needs Chrome. Type the order";
 } else {
-  recogniser = new Recognition();
+  const recogniser = new Recognition();
   recogniser.lang = LANG;
   recogniser.interimResults = true;
   recogniser.continuous = false;
 
   recogniser.onstart = () => {
-    byId("mic").classList.remove("fault");
+    heard = "";
     byId("mic").classList.add("live");
-    byId("hint").classList.add("live");
-    byId("hint").textContent = "Listening…";
+    byId("tx").value = "";
+    byId("tx").placeholder = "Listening…";
   };
   recogniser.onresult = (event) => {
-    let text = "";
-    for (const result of event.results) text += result[0].transcript;
-    byId("tx").value = text;
+    heard = [...event.results].map((r) => r[0].transcript).join("");
+    byId("tx").value = heard;
   };
   recogniser.onerror = (event) => {
-    byId("mic").classList.add("fault");
-    byId("hint").textContent = event.error === "network"
-      ? "Voice needs internet. Type the order below."
-      : "Mic error (" + event.error + "). Type instead.";
+    heard = "";
+    setError(event.error === "network" ? "Voice needs internet. Type the order instead." : "Mic error (" + event.error + "). Type instead.");
   };
   recogniser.onend = () => {
     byId("mic").classList.remove("live");
-    byId("hint").classList.remove("live");
-    if (byId("hint").classList.contains("live") || byId("hint").textContent.startsWith("Listening")) byId("hint").textContent = "Tap to speak again";
+    byId("tx").placeholder = "Type an order";
+    if (heard.trim()) addOrder(heard);
   };
 
   byId("mic").onclick = () => {
-    byId("err").textContent = "";
+    setError("");
     if (byId("mic").classList.contains("live")) return recogniser.stop();
     if (!navigator.onLine) {
-      byId("hint").textContent = "Voice needs internet. Type the order below.";
+      setError("Voice needs internet. Type the order instead.");
       byId("tx").focus();
       return;
     }
-    byId("tx").value = "";
-    try { recogniser.start(); } catch (e) { /* already running */ }
+    if (bill.done) newOrder();
+    try { recogniser.start(); } catch (e) {}
   };
 }
 
-document.querySelectorAll(".ms-way").forEach((way) => {
-  way.onclick = () => { byId("tx").value = way.dataset.say; byId("tx").focus(); };
-});
-
-let lastTranscript = "";
-let lastInvoice = null;
-
-function esc(v) {
-  return String(v).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-}
-function money(n) { return "₹" + (Number(n) || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
-function busy(on, label) {
-  byId("go").disabled = on;
-  byId("go").textContent = on ? (label || "Working…") : "Review bill";
-}
-function showBill(on) {
-  byId("out").hidden = !on;
-  byId("billph").hidden = on;
-  if (on && matchMedia("(max-width: 959px)").matches) byId("out").scrollIntoView({ behavior: "smooth" });
-}
-function panelError(message) {
-  const slot = byId("out").querySelector('[data-slot="err"]');
-  if (slot) slot.textContent = message; else byId("err").textContent = message;
-}
-
-byId("go").onclick = async () => {
-  const transcript = byId("tx").value.trim();
-  byId("err").textContent = "";
-  if (!transcript) { byId("err").textContent = "Say or type an order first."; return; }
-  lastTranscript = transcript;
-  checkout.ref = Store.newRef();
-  busy(true, "Checking…");
-  try {
-    renderEditor(await preview(transcript));
-  } catch (e) {
-    byId("err").textContent = e.message;
-  } finally {
-    busy(false);
-  }
+byId("typeform").onsubmit = (event) => {
+  event.preventDefault();
+  addOrder(byId("tx").value);
 };
+
+async function addOrder(text) {
+  const transcript = text.trim();
+  setError("");
+  if (!transcript) { setError("Say or type an order first."); return; }
+  if (bill.done) newOrder();
+  byId("add").disabled = true;
+  try {
+    const review = await preview(transcript);
+    bill.uoms = review.uoms;
+    review.rows.forEach((r) => {
+      const line = bill.lines.find((l) => l.item_code === r.item_code);
+      if (line) line.qty += Number(r.qty) || 0;
+      else bill.lines.push({ item_code: r.item_code, item_name: r.item_name, qty: Number(r.qty) || 0, rate: Number(r.rate) || 0 });
+    });
+    bill.unmatched.push(...review.unmatched);
+    if (!review.rows.length && !review.unmatched.length) setError("Nothing recognised in “" + transcript + "”.");
+    if (!bill.ref) bill.ref = Store.newRef();
+    byId("tx").value = "";
+    render();
+  } catch (e) {
+    setError(e.message);
+  } finally {
+    byId("add").disabled = false;
+  }
+}
 
 async function preview(transcript) {
   try {
@@ -205,71 +187,63 @@ async function refreshOfflineData() {
   } catch (e) {}
 }
 
-/* The bill is edited here, not in Desk. Quantities and rates are live inputs,
-   rows can be dropped, and whatever is on screen is what gets billed. */
-function renderEditor(review) {
-  const uoms = review.uoms.map((u) => `<option>${esc(u)}</option>`).join("");
+function renderModes() {
+  byId("modes").innerHTML = MODES.map(([m, icon]) =>
+    `<button type="button" class="ms-mode${m === bill.mode ? " on" : ""}" data-mode="${m}"><i>${icon}</i>${m}</button>`).join("");
+}
 
-  const lines = review.rows.map((r) => `
-    <div class="ms-grow ms-edit ms-line" data-code="${esc(r.item_code)}">
-      <div class="ms-cell"><input class="q" type="number" min="0" step="1" value="${r.qty}" aria-label="Quantity"></div>
-      <div class="ms-gname">${esc(r.item_name)}</div>
-      <div class="ms-cell"><input class="r" type="number" min="0" step="0.01" value="${Number(r.rate) || 0}" aria-label="Rate"></div>
-      <div class="ms-amt">0.00</div>
-      <div><button class="ms-del" data-act="del" title="Remove" aria-label="Remove">&times;</button></div>
+function render() {
+  byId("reg").classList.toggle("has-lines", bill.lines.length > 0);
+  byId("reg").classList.remove("done");
+  if (!bill.lines.length && !bill.unmatched.length) {
+    byId("out").innerHTML = `
+      <div class="ms-reg-empty">
+        <p>Tap the mic and say the order</p>
+        ${SAYINGS.map(([kind, say]) => `<button class="ms-way" type="button" data-act="say" data-say="${esc(say)}"><span>${kind}</span>${esc(say)}</button>`).join("")}
+      </div>`;
+    recalc();
+    return;
+  }
+  const uoms = bill.uoms.map((u) => `<option>${esc(u)}</option>`).join("");
+  const lines = bill.lines.map((l, i) => `
+    <div class="ms-rline" data-i="${i}">
+      <div class="ms-rname"><b>${esc(l.item_name)}</b><label>₹<input class="r ms-mono" type="number" min="0" step="0.01" value="${l.rate}" aria-label="Rate"> each</label></div>
+      <div class="ms-step">
+        <button type="button" data-act="dec" aria-label="One less">−</button>
+        <input class="q ms-mono" type="number" min="0" step="1" inputmode="decimal" value="${l.qty}" aria-label="Quantity">
+        <button type="button" data-act="inc" aria-label="One more">+</button>
+      </div>
+      <div class="ms-amt ms-mono">0.00</div>
     </div>`).join("");
-
-  const grid = review.rows.length
-    ? `<div class="ms-ghead ms-edit"><div>Qty</div><div>Item</div><div class="ms-ar">Rate ₹</div><div class="ms-ar ms-amt-h">Amount</div><div></div></div>
-       ${lines}
-       <div class="ms-total"><span>Subtotal</span><span class="ms-mono" data-slot="total">0.00</span></div>`
-    : `<div class="ms-empty">Nothing recognised in the order.</div>`;
-
-  const missing = review.unmatched.map((u, n) => `
-    <div class="ms-add" data-i="${n}">
+  const missing = bill.unmatched.map((u, n) => `
+    <div class="ms-add" data-n="${n}">
       <div class="ms-addhead">${u.qty} × “${esc(u.phrase)}” is not in your items</div>
       <div class="ms-addrow">
         <input class="newname" value="${esc(u.phrase)}" placeholder="Item name">
         <input class="rt" type="number" min="0" step="0.01" placeholder="Rate ₹">
         <select class="um">${uoms}</select>
         <button class="ms-mini" data-act="add">Add item</button>
+        <button class="ms-mini ghost" data-act="skip">Skip</button>
       </div>
     </div>`).join("");
-
-  const count = review.rows.length;
-  const head = `<div class="ms-rhead"><b>Bill</b><span>${count} item${count === 1 ? "" : "s"}</span></div>`;
-  byId("out").innerHTML = head + grid + missing + checkoutHtml() + `
-    <button class="ms-btn green" data-act="create">Create bill</button>
-    <div class="ms-err" data-slot="err"></div>`;
-  showBill(true);
+  byId("out").innerHTML = lines + (missing ? `<div class="ms-reg-pad">${missing}</div>` : "") + checkoutHtml();
   recalc();
 }
 
-const checkout = { customer: null, mode: "Cash", discount: 0, payable: 0, ref: null };
-let foundCustomers = [];
-let searchTimer = null;
-let qrKey = "";
-
 function checkoutHtml() {
-  const c = checkout.customer;
+  const c = bill.customer;
   const who = c
     ? `<div class="ms-picked"><span><b>${esc(c.customer_name)}</b>${c.mobile_no ? " · " + esc(c.mobile_no) : ""}${c.due ? ` · <span class="ms-due">owes ${money(c.due)}</span>` : ""}</span>
          <button class="ms-del" data-act="unpick" title="Walk-in" aria-label="Clear customer">&times;</button></div>`
-    : `<input class="ms-custq ms-field" placeholder="Search name or phone (optional)" autocomplete="off">
+    : `<input class="ms-custq ms-field" placeholder="Customer name or phone (optional)" autocomplete="off">
        <div class="ms-found" data-slot="found"></div>`;
-  const modes = [["Cash", ICONS.cash, "Cash"], ["UPI", ICONS.upi, "UPI"], ["Udhaar", ICONS.credit, "Credit"]].map(([m, icon, label]) =>
-    `<button type="button" class="ms-mode${m === checkout.mode ? " on" : ""}" data-act="mode" data-mode="${m}"><i>${icon}</i>${label}</button>`).join("");
   return `
-    <div class="ms-checkout">
-      <label class="ms-label">Customer</label>
+    <div class="ms-checkout ms-reg-pad">
       ${who}
-      <label class="ms-label">Payment method</label>
-      <div class="ms-modes">${modes}</div>
       <div class="ms-payrow">
         <label class="ms-label" for="discount">Discount (₹)</label>
-        <input id="discount" class="ms-discount ms-field" type="number" min="0" step="1" value="${checkout.discount || ""}" placeholder="0">
+        <input id="discount" class="ms-discount ms-field" type="number" min="0" step="1" value="${bill.discount || ""}" placeholder="0">
       </div>
-      <div class="ms-payable"><span>Amount due</span><span class="ms-mono" data-slot="payable">0.00</span></div>
       <div class="ms-qr" data-slot="qr"></div>
     </div>`;
 }
@@ -283,15 +257,18 @@ function rerenderCheckout() {
 }
 
 function setMode(mode) {
-  checkout.mode = mode;
-  panelError(mode === "Udhaar" && !checkout.customer ? "Select a customer to bill on credit." : "");
-  rerenderCheckout();
+  bill.mode = mode;
+  renderModes();
+  const needsCustomer = mode === "Udhaar" && !bill.customer;
+  setError(needsCustomer ? "Pick a customer to bill on credit." : "");
+  if (needsCustomer) byId("out").querySelector(".ms-custq")?.focus();
+  recalc();
 }
 
 function pickCustomer(customer) {
-  checkout.customer = customer || null;
+  bill.customer = customer || null;
   foundCustomers = [];
-  panelError("");
+  setError("");
   rerenderCheckout();
 }
 
@@ -305,7 +282,7 @@ function searchCustomers(text) {
     try {
       foundCustomers = await call("my_shop.khata.find_customers", { query });
     } catch (e) {
-      if (!(e instanceof Offline)) { panelError(e.message); return; }
+      if (!(e instanceof Offline)) { setError(e.message); return; }
       foundCustomers = cachedCustomers(query);
     }
     const isPhone = /^[+\d\s]{6,}$/.test(query);
@@ -325,14 +302,14 @@ function searchCustomers(text) {
 async function saveCustomer(button) {
   const box = button.closest(".ms-newcust");
   const customer_name = box.querySelector(".nc-name").value.trim();
-  if (!customer_name) { panelError("Enter the customer's name."); return; }
+  if (!customer_name) { setError("Enter the customer's name."); return; }
   button.disabled = true;
   try {
     pickCustomer(await call("my_shop.khata.add_customer", {
       customer_name, mobile_no: box.querySelector(".nc-mobile").value.trim(),
     }));
   } catch (e) {
-    panelError(e instanceof Offline ? "Adding a customer needs internet. Pick an existing customer or bill as walk-in." : e.message);
+    setError(e instanceof Offline ? "Adding a customer needs internet. Pick an existing customer or bill as walk-in." : e.message);
     button.disabled = false;
   }
 }
@@ -340,56 +317,60 @@ async function saveCustomer(button) {
 function refreshQr() {
   const slot = byId("out").querySelector('[data-slot="qr"]');
   if (!slot) return;
-  if (checkout.mode !== "UPI" || !checkout.payable) { slot.innerHTML = ""; qrKey = ""; return; }
-  const key = checkout.payable.toFixed(2);
+  if (bill.mode !== "UPI" || !bill.payable) { slot.innerHTML = ""; qrKey = ""; return; }
+  const key = bill.payable.toFixed(2);
   if (key === qrKey) return;
   qrKey = key;
   clearTimeout(refreshQr.timer);
   refreshQr.timer = setTimeout(async () => {
     try {
-      const qr = await call("upi_qr", { amount: checkout.payable, note: "Bill" });
+      const qr = await call("upi_qr", { amount: bill.payable, note: "Bill" });
       if (qrKey !== key) return;
       slot.innerHTML = qr
-        ? qr.svg + `<div>Scan to pay ${money(checkout.payable)}</div>`
+        ? qr.svg + `<div>Scan to pay ${money(bill.payable)}</div>`
         : `<div class="ms-muted">Add your UPI ID in <a href="/shop-settings">Settings</a> to show a payment QR.</div>`;
     } catch (e) {
       const upi = e instanceof Offline && (Store.loadData() || {}).upi_id;
-      slot.innerHTML = upi ? `<div class="ms-muted">Offline: ask them to pay ${money(checkout.payable)} to <b>${esc(upi)}</b>.</div>` : "";
+      slot.innerHTML = upi ? `<div class="ms-muted">Offline: ask them to pay ${money(bill.payable)} to <b>${esc(upi)}</b>.</div>` : "";
     }
   }, 300);
 }
 
 function recalc() {
-  let total = 0;
-  byId("out").querySelectorAll(".ms-line").forEach((tr) => {
-    const amount = (Number(tr.querySelector(".q").value) || 0) * (Number(tr.querySelector(".r").value) || 0);
-    total += amount;
-    tr.querySelector(".ms-amt").textContent = money(amount);
+  let subtotal = 0;
+  let count = 0;
+  byId("out").querySelectorAll(".ms-rline").forEach((row) => {
+    const line = bill.lines[Number(row.dataset.i)];
+    const amount = line.qty * line.rate;
+    subtotal += amount;
+    count += line.qty;
+    row.querySelector(".ms-amt").textContent = money(amount);
   });
-  const slot = byId("out").querySelector('[data-slot="total"]');
-  if (slot) slot.textContent = money(total);
-  const discountBox = byId("out").querySelector(".ms-discount");
-  checkout.discount = discountBox ? Math.max(Number(discountBox.value) || 0, 0) : 0;
-  checkout.payable = Math.max(total - checkout.discount, 0);
-  const payable = byId("out").querySelector('[data-slot="payable"]');
-  if (payable) payable.textContent = money(checkout.payable);
+  bill.payable = Math.max(subtotal - bill.discount, 0);
+  byId("total").textContent = money(bill.payable);
+  const who = bill.customer ? " · " + bill.customer.customer_name : "";
+  byId("meta").textContent = (bill.lines.length ? `${count} item${count === 1 ? "" : "s"}` : "Ready") + who + (bill.discount ? ` · ${money(bill.discount)} off` : "");
+  byId("go").disabled = !bill.lines.some((l) => l.qty > 0);
+  byId("go").textContent = bill.lines.length ? `Charge ${money(bill.payable)}` : "Charge";
   refreshQr();
-  const create = byId("out").querySelector('[data-act="create"]');
-  if (create) create.disabled = collectRows().length === 0;
 }
 
-function collectRows() {
-  return [...byId("out").querySelectorAll(".ms-line")].map((tr) => ({
-    item_code: tr.dataset.code,
-    item_name: tr.querySelector(".ms-gname").textContent,
-    qty: Number(tr.querySelector(".q").value) || 0,
-    rate: Number(tr.querySelector(".r").value) || 0,
-  })).filter((r) => r.qty > 0);
+function setQty(i, qty) {
+  bill.lines[i].qty = Math.max(qty, 0);
+  if (!bill.lines[i].qty) { bill.lines.splice(i, 1); render(); return; }
+  byId("out").querySelector(`.ms-rline[data-i="${i}"] .q`).value = bill.lines[i].qty;
+  recalc();
 }
 
 byId("out").addEventListener("input", (event) => {
-  if (event.target.classList.contains("ms-custq")) return searchCustomers(event.target.value);
-  if (event.target.closest(".ms-newcust")) return;
+  const target = event.target;
+  if (target.classList.contains("ms-custq")) return searchCustomers(target.value);
+  if (target.classList.contains("ms-discount")) { bill.discount = Math.max(Number(target.value) || 0, 0); return recalc(); }
+  const row = target.closest(".ms-rline");
+  if (!row) return;
+  const line = bill.lines[Number(row.dataset.i)];
+  if (target.classList.contains("q")) line.qty = Math.max(Number(target.value) || 0, 0);
+  if (target.classList.contains("r")) line.rate = Math.max(Number(target.value) || 0, 0);
   recalc();
 });
 
@@ -397,132 +378,130 @@ byId("out").addEventListener("click", (event) => {
   const button = event.target.closest("[data-act]");
   if (!button) return;
   const act = button.dataset.act;
+  const i = Number(button.closest(".ms-rline")?.dataset.i);
+  if (act === "inc") setQty(i, bill.lines[i].qty + 1);
+  if (act === "dec") setQty(i, bill.lines[i].qty - 1);
+  if (act === "say") addOrder(button.dataset.say);
   if (act === "add") quickAdd(button);
-  if (act === "del") { button.closest(".ms-line").remove(); recalc(); }
-  if (act === "create") confirmCreate();
+  if (act === "skip") { bill.unmatched.splice(Number(button.closest(".ms-add").dataset.n), 1); render(); }
   if (act === "print") window.open(lastInvoice.print_url, "_blank");
-  if (act === "edit") location.href = lastInvoice.url;
-  if (act === "new") newOrder();
-  if (act === "mode") setMode(button.dataset.mode);
   if (act === "pick") pickCustomer(foundCustomers[Number(button.dataset.i)]);
   if (act === "unpick") pickCustomer(null);
   if (act === "newcust") saveCustomer(button);
 });
 
+byId("modes").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-mode]");
+  if (button) setMode(button.dataset.mode);
+});
+
+byId("go").onclick = () => (bill.done ? newOrder() : confirmCreate());
+
 async function quickAdd(button) {
   const box = button.closest(".ms-add");
+  const n = Number(box.dataset.n);
   const item_name = box.querySelector(".newname").value.trim();
-  if (!item_name) { panelError("Enter the item name."); return; }
+  if (!item_name) { setError("Enter the item name."); return; }
 
   button.disabled = true;
   button.textContent = "…";
-  panelError("");
+  setError("");
   try {
     await call("add_item", {
       item_name,
       rate: Number(box.querySelector(".rt").value) || 0,
       uom: box.querySelector(".um").value,
     });
-    // re-match, but keep any edits already made to the rows on screen
-    const edited = collectRows();
-    const review = await call("preview", { transcript: lastTranscript });
-    review.rows.forEach((r) => {
-      const prev = edited.find((e) => e.item_code === r.item_code);
-      if (prev) { r.qty = prev.qty; r.rate = prev.rate; }
-    });
-    renderEditor(review);
+    const [u] = bill.unmatched.splice(n, 1);
+    await addOrder(`${u.qty} ${item_name}`);
   } catch (e) {
-    panelError(e instanceof Offline ? "Adding a new item needs internet. Remove it from the order for now." : e.message);
+    setError(e instanceof Offline ? "Adding a new item needs internet. Skip it for now." : e.message);
     button.disabled = false;
     button.textContent = "Add item";
   }
 }
 
 async function confirmCreate() {
-  const rows = collectRows();
-  if (!rows.length) { panelError("Nothing to bill."); return; }
+  const rows = bill.lines.filter((l) => l.qty > 0);
+  if (!rows.length) { setError("Nothing to bill."); return; }
+  if (bill.mode === "Udhaar" && !bill.customer) { setMode("Udhaar"); return; }
   const args = {
     rows: JSON.stringify(rows.map(({ item_code, qty, rate }) => ({ item_code, qty, rate }))),
-    customer: checkout.customer ? checkout.customer.name : null,
-    payment_mode: checkout.mode,
-    discount: checkout.discount,
-    client_ref: checkout.ref,
+    customer: bill.customer ? bill.customer.name : null,
+    payment_mode: bill.mode,
+    discount: bill.discount,
+    client_ref: bill.ref,
   };
-  busy(true, "Creating…");
+  byId("go").disabled = true;
+  byId("go").textContent = "Creating…";
   try {
     renderInvoice(await call("create_invoice", args));
   } catch (e) {
     if (e instanceof Offline) saveOffline(args, rows);
-    else panelError(e.message);
-  } finally {
-    busy(false);
+    else { setError(e.message); recalc(); }
   }
+}
+
+function showDone(html) {
+  bill.done = true;
+  byId("reg").classList.add("done");
+  byId("out").innerHTML = `<div class="ms-reg-pad">${html}</div>`;
+  byId("go").disabled = false;
+  byId("go").textContent = "New bill";
+  byId("out").parentElement.scrollTop = 0;
+}
+
+function doneRows(rows) {
+  return rows.map((r) => `
+    <div class="ms-grow ms-done">
+      <div class="ms-mono ms-q">${r.qty}</div><div class="ms-gname">${esc(r.item_name)}</div>
+      <div class="ms-ar ms-mono ms-rate">${money(r.rate)}</div><div class="ms-ar ms-mono">${money(r.amount ?? r.qty * r.rate)}</div>
+    </div>`).join("");
 }
 
 function saveOffline(args, rows) {
   args = { ...args, posting_date: Store.localDate() };
-  const bill = {
+  const queued = {
     client_ref: args.client_ref,
     posting_date: args.posting_date,
-    customer_name: checkout.customer ? checkout.customer.customer_name : "Walk-in customer",
-    total: checkout.payable,
+    customer_name: bill.customer ? bill.customer.customer_name : "Walk-in customer",
+    total: bill.payable,
     args,
   };
-  if (!Store.outbox.add(bill)) { panelError("Could not save the bill on this device. Free some browser storage and try again."); return; }
+  if (!Store.outbox.add(queued)) { setError("Could not save the bill on this device. Free some browser storage and try again."); recalc(); return; }
   MyShopSync.render();
   navigator.vibrate?.([20, 60, 20]);
-  const body = rows.map((r) => `
-    <div class="ms-grow ms-done">
-      <div class="ms-mono ms-q">${r.qty}</div><div class="ms-gname">${esc(r.item_name)}</div>
-      <div class="ms-ar ms-mono ms-rate">${money(r.rate)}</div><div class="ms-ar ms-mono">${money(r.qty * r.rate)}</div>
-    </div>`).join("");
-  byId("out").innerHTML = `
+  showDone(`
     <div class="ms-billed ms-queued">
       <div class="ms-tick">${ICONS.credit}</div>
       <div><p class="ms-ok">Saved offline</p><div class="ms-invno">Uploads by itself when you are back online</div></div>
     </div>
-    <div class="ms-ghead ms-done"><div>Qty</div><div>Item</div><div class="ms-ar ms-rate">Rate</div><div class="ms-ar">Amount</div></div>
-    ${body}
-    ${checkout.discount ? `<div class="ms-sumline"><span>Discount</span><span class="ms-mono">−${money(checkout.discount)}</span></div>` : ""}
-    <div class="ms-total"><span>Total</span><span class="ms-mono">${money(checkout.payable)}</span></div>
-    <p class="ms-paidnote">${esc(bill.customer_name)} · ${checkout.mode === "Udhaar" ? `<b class="ms-due">on credit</b>` : `Paid by ${esc(checkout.mode)}`}. Any tax is added when it uploads.</p>
-    <div class="ms-actions">
-      <button class="ms-btn" data-act="new">New bill</button>
-    </div>`;
-  showBill(true);
+    ${doneRows(rows)}
+    ${bill.discount ? `<div class="ms-sumline"><span>Discount</span><span class="ms-mono">−${money(bill.discount)}</span></div>` : ""}
+    <p class="ms-paidnote">${esc(queued.customer_name)} · ${bill.mode === "Udhaar" ? `<b class="ms-due">on credit</b>` : `Paid by ${esc(bill.mode)}`}. Any tax is added when it uploads.</p>`);
 }
 
 function renderInvoice(result) {
   lastInvoice = result;
   loadToday();
-  const body = result.rows.map((r) => `
-    <div class="ms-grow ms-done">
-      <div class="ms-mono ms-q">${r.qty}</div><div class="ms-gname">${esc(r.item_name)}</div>
-      <div class="ms-ar ms-mono ms-rate">${money(r.rate)}</div><div class="ms-ar ms-mono">${money(r.amount)}</div>
-    </div>`).join("");
-
   navigator.vibrate?.(result.outstanding > 0 ? [20, 60, 20] : 30);
-  byId("out").innerHTML = `
+  byId("total").textContent = money(result.grand_total);
+  showDone(`
     <div class="ms-billed${result.outstanding > 0 ? " due" : ""}">
       <div class="ms-tick">${result.outstanding > 0 ? ICONS.credit : "✓"}</div>
       <div><p class="ms-ok">${result.outstanding > 0 ? "Billed on credit" : "Payment received"}</p><div class="ms-invno">${esc(result.name)}</div></div>
     </div>
-    <div class="ms-ghead ms-done"><div>Qty</div><div>Item</div><div class="ms-ar ms-rate">Rate</div><div class="ms-ar">Amount</div></div>
-    ${body}
+    ${doneRows(result.rows)}
     ${result.discount ? `<div class="ms-sumline"><span>Discount</span><span class="ms-mono">−${money(result.discount)}</span></div>` : ""}
     ${result.taxes ? `<div class="ms-sumline"><span>Tax</span><span class="ms-mono">${money(result.taxes)}</span></div>` : ""}
-    <div class="ms-total"><span>Total</span><span class="ms-mono">${money(result.grand_total)}</span></div>
     <p class="ms-paidnote">${esc(result.customer_name)} · ${result.outstanding > 0
       ? `<b class="ms-due">${money(result.outstanding)} outstanding</b>`
-      : `Paid by ${esc(checkout.mode)}`}</p>
+      : `Paid by ${esc(bill.mode)}`}</p>
     ${result.upi_link ? `<div class="ms-qr" data-slot="billqr"></div>` : ""}
     <div class="ms-actions">
-      <button class="ms-btn" data-act="new">New bill</button>
+      <a class="ms-btn wa" href="${esc(result.whatsapp_url)}" target="_blank" rel="noopener">WhatsApp</a>
       <button class="ms-btn ghost" data-act="print">Print</button>
-    </div>
-    <a class="ms-btn wa ms-wa" href="${esc(result.whatsapp_url)}" target="_blank" rel="noopener">Share on WhatsApp</a>
-    <div class="ms-err" data-slot="err"></div>`;
-  showBill(true);
+    </div>`);
   if (result.upi_link) {
     call("upi_qr", { amount: result.outstanding, note: result.name }).then((qr) => {
       const slot = byId("out").querySelector('[data-slot="billqr"]');
@@ -534,33 +513,24 @@ function renderInvoice(result) {
 async function loadToday() {
   try {
     const s = await call("my_shop.khata.today_summary", {});
-    const c = s.collected || {};
-    byId("hero").hidden = false;
-    byId("hero").querySelector('[data-slot="today"]').textContent = money(s.total).replace(".00", "");
-    const short = (n) => money(n).replace(".00", "");
-    byId("hero").querySelector('[data-slot="today-side"]').innerHTML = s.bills
-      ? `<strong>${s.bills} bill${s.bills === 1 ? "" : "s"}</strong><br>Cash ${short(c.Cash)} · UPI ${short(c.UPI)}`
-      : `No sales yet.<br>The first bill starts the day.`;
+    byId("reg").querySelector('[data-slot="today"]').textContent =
+      `· ${money(s.total).replace(".00", "")} today` + (s.bills ? ` · ${s.bills} bill${s.bills === 1 ? "" : "s"}` : "");
   } catch (e) {}
 }
+
+function newOrder() {
+  Object.assign(bill, { lines: [], unmatched: [], customer: null, mode: "Cash", discount: 0, payable: 0, ref: null, done: false });
+  lastInvoice = null;
+  qrKey = "";
+  setError("");
+  renderModes();
+  render();
+}
+
+newOrder();
 loadToday();
 refreshOfflineData();
 window.addEventListener("online", refreshOfflineData);
 window.addEventListener("my-shop:synced", loadToday);
-
-function newOrder() {
-  checkout.ref = null;
-  checkout.customer = null;
-  checkout.mode = "Cash";
-  checkout.discount = 0;
-  lastTranscript = "";
-  lastInvoice = null;
-  byId("tx").value = "";
-  byId("err").textContent = "";
-  showBill(false);
-  byId("out").innerHTML = "";
-  byId("hint").textContent = "Tap to speak the next order";
-  window.scrollTo({ top: 0, behavior: "smooth" });
-}
 </script>
 {% endblock %}
