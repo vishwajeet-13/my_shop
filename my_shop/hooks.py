@@ -108,6 +108,7 @@ required_apps = ["erpnext"]
 
 # before_install = "my_shop.install.before_install"
 after_install = "my_shop.install.after_install"
+setup_wizard_success = "my_shop.install.set_default_settings"
 
 # Uninstallation
 # ------------

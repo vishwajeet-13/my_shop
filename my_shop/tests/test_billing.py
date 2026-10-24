@@ -2,6 +2,7 @@ import frappe
 from frappe.tests import IntegrationTestCase
 
 from my_shop import api, khata
+from my_shop.my_shop.doctype.shop_voice_settings.shop_voice_settings import WALK_IN_CUSTOMER
 
 
 class TestBilling(IntegrationTestCase):
@@ -207,3 +208,14 @@ class TestPWA(IntegrationTestCase):
 		self.assertEqual(data["start_url"], "/voice")
 		self.assertEqual(data["display"], "standalone")
 		self.assertIn("maskable", {icon["purpose"] for icon in data["icons"]})
+
+
+class TestSettingsDefaults(IntegrationTestCase):
+	def test_empty_settings_fill_company_and_walk_in_customer(self):
+		settings = frappe.get_single("Shop Voice Settings")
+		settings.company = settings.default_customer = None
+		settings.save(ignore_permissions=True)
+
+		self.assertTrue(settings.company)
+		self.assertEqual(settings.default_customer, WALK_IN_CUSTOMER)
+		self.assertTrue(frappe.db.exists("Customer", WALK_IN_CUSTOMER))
