@@ -12,7 +12,6 @@ from my_shop.payments import CASH, UPI, ensure_mode_of_payment
 COMPANY = "My Shop"
 ABBR = "MS"
 ITEM_GROUP = "Hardware"
-CUSTOMER = "Walk In Customer"
 
 # item name, uom, rate. These are the words a hardware shop actually says.
 ITEMS = [
@@ -150,23 +149,10 @@ def _ensure_selling_settings():
 	selling.save(ignore_permissions=True)
 
 
-def _ensure_customer():
-	if frappe.db.exists("Customer", CUSTOMER):
-		return
-	frappe.get_doc({
-		"doctype": "Customer",
-		"customer_name": CUSTOMER,
-		"customer_type": "Individual",
-		"customer_group": frappe.db.get_value("Customer Group", {"is_group": 0}, "name"),
-		"territory": frappe.db.get_value("Territory", {"is_group": 0}, "name"),
-	}).insert(ignore_permissions=True)
-
-
 def _ensure_settings():
 	settings = frappe.get_single("Shop Voice Settings")
 	settings.shop_name = COMPANY
 	settings.company = COMPANY
-	settings.default_customer = CUSTOMER
 	settings.item_group = ITEM_GROUP
 	settings.speech_lang = "en-IN"
 	settings.save(ignore_permissions=True)
@@ -181,7 +167,6 @@ def seed():
 	_ensure_price_lists()
 	_ensure_items()
 	_ensure_selling_settings()
-	_ensure_customer()
 	_ensure_settings()
 	for mode in (CASH, UPI):
 		ensure_mode_of_payment(mode)

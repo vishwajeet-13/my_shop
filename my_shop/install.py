@@ -1,3 +1,5 @@
+import frappe
+from erpnext import get_default_company
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 
 CLIENT_REF = "my_shop_client_ref"
@@ -21,3 +23,9 @@ CUSTOM_FIELDS = {
 
 def after_install():
 	create_custom_fields(CUSTOM_FIELDS, update=True)
+	set_default_settings()
+
+
+def set_default_settings(_args=None):
+	if get_default_company():
+		frappe.get_single("Shop Voice Settings").save(ignore_permissions=True)
