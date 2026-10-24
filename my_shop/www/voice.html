@@ -6,14 +6,9 @@
 
 {% block content %}
 <div class="ms-reg" id="reg">
-  <header class="ms-reg-top">
-    <b>{{ shop_name }}</b>
-    <span data-slot="today"></span>
-    <a class="ms-icon" href="/khata" aria-label="Khata"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5V5a2 2 0 0 1 2-2h14v16H6.5A2.5 2.5 0 0 0 4 21.5v-2z"/><path d="M8 7h8M8 11h6"/></svg></a>
-    <a class="ms-icon" href="/shop-settings" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>
-  </header>
+  {% set tab = "bill" %}{% include "templates/includes/my_shop_bar.html" %}
 
-  <div class="ms-reg-sum">
+  <div class="ms-sum">
     <p id="meta">Ready</p>
     <b class="ms-mono" id="total">₹0.00</b>
   </div>
@@ -39,7 +34,6 @@
     </div>
   </footer>
 </div>
-{% include "templates/includes/my_shop_banners.html" %}
 
 <script>
 const CSRF = "{{ csrf_token }}";
@@ -47,7 +41,6 @@ const LANG = "{{ speech_lang }}";
 const byId = (id) => document.getElementById(id);
 const ICONS = { cash: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/></svg>`, upi: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3M21 14v.01M14 21h3M21 18v3h-.01"/></svg>`, credit: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>` };
 const MODES = [["Cash", ICONS.cash], ["UPI", ICONS.upi], ["Udhaar", ICONS.credit]];
-const SAYINGS = [["Numbers", "5 nut bolt, 2 kg wire nail"], ["Words", "two dozen washer and one claw hammer"], ["Hindi", "paanch nut bolt aur do hammer"]];
 
 class Offline extends Error {}
 const Store = window.MyShopOffline;
@@ -198,8 +191,8 @@ function render() {
   if (!bill.lines.length && !bill.unmatched.length) {
     byId("out").innerHTML = `
       <div class="ms-reg-empty">
-        <p>Tap the mic and say the order</p>
-        ${SAYINGS.map(([kind, say]) => `<button class="ms-way" type="button" data-act="say" data-say="${esc(say)}"><span>${kind}</span>${esc(say)}</button>`).join("")}
+        ${byId("mic").innerHTML}
+        <p>Tap the mic and say the order.<br>“five nut bolt and two claw hammer”</p>
       </div>`;
     recalc();
     return;
@@ -381,7 +374,6 @@ byId("out").addEventListener("click", (event) => {
   const i = Number(button.closest(".ms-rline")?.dataset.i);
   if (act === "inc") setQty(i, bill.lines[i].qty + 1);
   if (act === "dec") setQty(i, bill.lines[i].qty - 1);
-  if (act === "say") addOrder(button.dataset.say);
   if (act === "add") quickAdd(button);
   if (act === "skip") { bill.unmatched.splice(Number(button.closest(".ms-add").dataset.n), 1); render(); }
   if (act === "print") window.open(lastInvoice.print_url, "_blank");

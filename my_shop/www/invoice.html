@@ -6,8 +6,6 @@
 
 {% block content %}
 <style>
-  .ms-bar { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 18px; }
-  .ms-bar .ms-btn { margin-top: 0; min-height: 48px; font-size: 15px; }
 
   .ms-receipt { padding: 0; animation: ms-rise .35s ease both; }
   .ms-rtop { display: flex; align-items: center; gap: 14px; padding: 24px 24px 18px; }
@@ -16,7 +14,7 @@
 
   .ms-meta { display: grid; grid-template-columns: 1fr auto; gap: 12px; margin-bottom: 18px;
         padding: 14px 0; border-top: 2px solid var(--ink); border-bottom: 1px dashed var(--line-strong); }
-  .ms-k { display: block; color: var(--muted); font: 600 11px/1.4 var(--sans); letter-spacing: .1em; text-transform: uppercase; }
+  .ms-k { display: block; color: var(--muted); font: 500 13px/1.4 var(--sans); }
   .ms-v { font: 600 16px/1.4 var(--sans); font-variant-numeric: tabular-nums; }
   .ms-meta .ms-right { text-align: right; }
 
@@ -26,18 +24,15 @@
   .ms-pending { display: flex; justify-content: space-between; align-items: baseline; margin-top: 12px; padding: 12px 14px;
         border-radius: 12px; background: var(--red-wash); color: var(--red); font: 600 15px/1.2 var(--sans); }
   .ms-foot { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 22px; }
-  .ms-thanks { margin: 0; color: var(--ink); font: 500 18px/1.3 var(--serif); }
+  .ms-thanks { margin: 0; color: var(--ink); font: 500 18px/1.3 var(--sans); }
   .ms-thanks small { display: block; color: var(--muted); font: 500 13px/1.3 var(--sans); }
-
-  @media (min-width: 960px) { .ms-wrap.ms-invoice { max-width: 640px; margin: 0; } }
 
   @media print {
     :root { --surface: #fff; --field: #fff; --ink: #000; --ink-soft: #222; --muted: #555; --line: #bbb; --line-strong: #888;
             --subtle: #fff; --brand: #000; --brand-wash: #fff; --red: #000; --red-wash: #fff; --green: #000; --green-wash: #fff; }
-    .ms-bar { display: none !important; }
+    .ms-top, .ms-print { display: none !important; }
     .ms-wrap { padding: 0; max-width: none; }
     .ms-receipt { border: none; box-shadow: none; animation: none; }
-    .ms-receipt::after { display: none; }
     .ms-rtop { padding: 0 0 14px; }
     .ms-rtop .ms-logo { background: none; color: #000; border: 2px solid #000; box-shadow: none; }
     .ms-rbody { padding: 0; }
@@ -46,11 +41,8 @@
   }
 </style>
 
-<div class="ms-wrap ms-invoice">
-  <nav class="ms-bar">
-    <a class="ms-btn ghost" href="/voice">← Back</a>
-    <button class="ms-btn" onclick="window.print()">Print</button>
-  </nav>
+<div class="ms-wrap">
+  {% set tab = "" %}{% include "templates/includes/my_shop_bar.html" %}
 
   <article class="ms-sheet ms-receipt">
     <header class="ms-rtop">
@@ -98,8 +90,8 @@
         <p class="ms-thanks">Thank you<small>We appreciate your business</small></p>
         {% if is_paid %}<div class="ms-stamp">Paid</div>{% elif invoice.outstanding_amount > 0 %}<div class="ms-stamp due">Due</div>{% endif %}
       </footer>
+      <button class="ms-btn ghost ms-print" onclick="window.print()">Print</button>
     </div>
   </article>
 </div>
-{% set tab = "" %}{% include "templates/includes/my_shop_tabs.html" %}
 {% endblock %}

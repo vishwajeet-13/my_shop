@@ -8,7 +8,7 @@ from werkzeug.wrappers import Response
 
 from frappe.website.page_renderers.base_renderer import BaseRenderer
 
-CACHE_VERSION = "my-shop-v7"
+CACHE_VERSION = "my-shop-v8"
 PUBLIC = Path(__file__).parent / "public"
 
 
