@@ -6,33 +6,29 @@
 
 {% block content %}
 <div class="ms-wrap">
-  <header class="ms-head">
-    <div class="ms-logo">{{ shop_name[0] | upper }}</div>
-    <div>
-      <p class="ms-eyebrow" data-today>{{ shop_name }}</p>
-      <h1 class="ms-title">Ledger</h1>
-    </div>
-  </header>
+  {% set tab = "khata" %}{% include "templates/includes/my_shop_bar.html" %}
+
+  <div class="ms-sum">
+    <p id="owedmeta">Owed to you</p>
+    <b class="ms-mono" id="owed">…</b>
+  </div>
 
   <section class="ms-sheet">
     <h2 class="ms-label">Today</h2>
-    <div class="ms-stats" id="stats"><div class="ms-muted">…</div></div>
+    <div class="ms-kpis" id="stats"><div class="ms-muted">…</div></div>
   </section>
 
-  <div class="ms-ledger">
-    <section class="ms-sheet">
-      <h2 class="ms-label">Owed to you</h2>
-      <div id="dues"><div class="ms-muted">…</div></div>
-      <div class="ms-err" id="err"></div>
-    </section>
+  <section class="ms-sheet">
+    <h2 class="ms-label">Who owes you</h2>
+    <div id="dues"><div class="ms-muted">…</div></div>
+    <div class="ms-err" id="err"></div>
+  </section>
 
-    <section class="ms-sheet">
-      <h2 class="ms-label">Today's bills</h2>
-      <div id="recent"><div class="ms-muted">…</div></div>
-    </section>
-  </div>
+  <section class="ms-sheet">
+    <h2 class="ms-label">Today's bills</h2>
+    <div id="recent"><div class="ms-muted">…</div></div>
+  </section>
 </div>
-{% set tab = "khata" %}{% include "templates/includes/my_shop_tabs.html" %}
 
 <script>
 const CSRF = "{{ csrf_token }}";
@@ -66,12 +62,12 @@ async function loadSummary() {
   const collected = s.collected || {};
   const other = Object.entries(collected).filter(([k]) => k !== "Cash" && k !== "UPI").reduce((a, [, v]) => a + v, 0);
   byId("stats").innerHTML = [
-    ["", shortMoney(s.total), `Sales · ${s.bills} bill${s.bills === 1 ? "" : "s"}`],
-    ["cash", shortMoney(collected.Cash), "Cash collected"],
-    ["upi", shortMoney(collected.UPI), "UPI collected"],
-    ["udhaar", shortMoney(s.on_credit), "Given on credit"],
-  ].concat(other ? [["", shortMoney(other), "Other collected"]] : [])
-    .map(([cls, value, label]) => `<div class="ms-stat ${cls}"><b>${value}</b><span>${label}</span></div>`).join("");
+    ["", shortMoney(s.total), "Sales"],
+    ["cash", shortMoney(collected.Cash), "Cash"],
+    ["", shortMoney(collected.UPI), "UPI"],
+    ["udhaar", shortMoney(s.on_credit), "Udhaar"],
+  ].concat(other ? [["", shortMoney(other), "Other"]] : [])
+    .map(([cls, value, label]) => `<div class="ms-kpi ${cls}"><span>${label}</span><b class="ms-mono">${value}</b></div>`).join("");
   byId("recent").innerHTML = s.recent.length
     ? s.recent.map((b) => `
       <a class="ms-bill" href="/invoice?name=${encodeURIComponent(b.name)}">
@@ -84,21 +80,22 @@ async function loadSummary() {
 
 async function loadDues() {
   dueRows = await call("dues");
+  byId("owed").textContent = money(dueRows.reduce((sum, d) => sum + d.due, 0));
+  byId("owedmeta").textContent = dueRows.length ? `Owed to you · ${dueRows.length} customer${dueRows.length === 1 ? "" : "s"}` : "Owed to you";
   byId("dues").innerHTML = dueRows.length
     ? dueRows.map((d, i) => `
       <div class="ms-item" data-i="${i}">
         <button type="button" class="ms-itemtop" data-act="toggle" aria-expanded="false">
           <span class="ms-avatar">${esc((d.customer_name || "?")[0].toUpperCase())}</span>
           <span class="ms-who"><b>${esc(d.customer_name)}</b>
-            <small>${d.mobile_no ? esc(d.mobile_no) + " · " : ""}${d.days ? `<span class="${d.days > 7 ? "late" : ""}">${d.days} day${d.days === 1 ? "" : "s"} pending</span>` : "since today"}</small></span>
-          <span class="ms-due">${shortMoney(d.due)}<small>owes</small></span>
-          <svg class="ms-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+            <small>${d.days ? `<span class="${d.days > 7 ? "late" : ""}">${d.days} day${d.days === 1 ? "" : "s"}</span>` : "Today"}${d.mobile_no ? " · " + esc(d.mobile_no) : ""}</small></span>
+          <span class="ms-due ms-mono">${shortMoney(d.due)}</span>
         </button>
         <div class="ms-acts">
           <input class="ms-field amt" type="number" min="0" step="1" value="${d.due}" aria-label="Amount received">
           <select class="ms-field mode" aria-label="Paid by"><option value="Cash">Cash</option><option value="UPI">UPI</option></select>
-          <button class="ms-mini green" data-act="receive">Record payment</button>
-          <a class="ms-mini ghost" href="${esc(d.reminder_url)}" target="_blank" rel="noopener">Send reminder</a>
+          <button class="ms-mini green" data-act="receive">Received</button>
+          <a class="ms-mini ghost" href="${esc(d.reminder_url)}" target="_blank" rel="noopener">Remind</a>
         </div>
         <div class="ms-err" data-slot="err"></div>
       </div>`).join("")

@@ -6,31 +6,21 @@
 
 {% block content %}
 <style>
-  .ms-form .ms-label { margin-top: 16px; }
-  .ms-form .ms-label:first-child { margin-top: 0; }
+  .ms-form .ms-label { margin-top: 18px; }
+  .ms-form .ms-label:first-of-type { margin-top: 0; }
   .ms-help { margin: 6px 2px 0; color: var(--muted); font-size: 13px; }
-  .ms-saved { margin-top: 12px; padding: 10px 14px; border-radius: 12px; background: var(--green-wash);
-        color: var(--green-deep); font-weight: 600; }
+  .ms-saved { margin-top: 12px; color: var(--green); font-weight: 600; }
   .ms-saved:empty { display: none; }
   .ms-install[hidden], .ms-install [hidden] { display: none; }
-  .ms-install h2 { margin: 0; color: var(--ink); font: 600 20px/1.2 var(--serif); }
-  .ms-install .ms-help { font-size: 14px; color: var(--ink-soft); }
+  .ms-install-card { display: flex; gap: 14px; align-items: flex-start; padding: 14px; border-radius: var(--radius-sm); background: var(--field); }
+  .ms-install-card .ms-logo { width: 40px; height: 40px; font-size: 18px; box-shadow: none; }
+  .ms-install-card > div > b { display: block; }
+  .ms-install-card .ms-help { margin: 2px 0 0; }
+  .ms-install-card .ms-mini { margin-top: 12px; }
 </style>
 
-<div class="ms-wrap ms-narrow">
-  <header class="ms-head">
-    <div class="ms-logo">{{ shop_name[0] | upper }}</div>
-    <div>
-      <p class="ms-eyebrow">{{ shop_name }}</p>
-      <h1 class="ms-title">Settings</h1>
-    </div>
-  </header>
-
-  <section class="ms-sheet ms-install" id="install" hidden>
-    <h2>Install {{ shop_name }}</h2>
-    <p class="ms-help" id="install-help">Open it from your dock or home screen like any other app.</p>
-    <button class="ms-btn" id="install-btn" hidden>Install app</button>
-  </section>
+<div class="ms-wrap">
+  {% set tab = "settings" %}{% include "templates/includes/my_shop_bar.html" %}
 
   <form class="ms-sheet ms-form" id="form">
     <label class="ms-label" for="shop_name">Shop name</label>
@@ -47,9 +37,7 @@
       {% endfor %}
     </select>
 
-    {% if can_edit %}
-    <button class="ms-btn green" type="submit" id="save">Save changes</button>
-    {% else %}
+    {% if not can_edit %}
     <p class="ms-help">Only the owner can change these settings.</p>
     {% endif %}
     <div class="ms-saved" id="saved"></div>
@@ -57,15 +45,29 @@
   </form>
 
   <section class="ms-sheet">
-    <h2 class="ms-label">More</h2>
-    <div class="ms-links">
-      <a class="ms-btn ghost" href="/app/shop-voice-settings">All settings</a>
-      <a class="ms-btn ghost" href="/app/item">Items &amp; prices</a>
-      <a class="ms-btn ghost" href="/app/customer">Customers</a>
+    <h2 class="ms-label">Manage</h2>
+    <a class="ms-row" href="/app/item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8M12 13v8"/></svg><span><b>Items &amp; prices</b><small>Add items, change rates and units</small></span><svg class="ms-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
+    <a class="ms-row" href="/app/customer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0M16 4a4 4 0 0 1 0 8M22 21a7 7 0 0 0-4-6.3"/></svg><span><b>Customers</b><small>Names, phone numbers and credit</small></span><svg class="ms-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
+    <a class="ms-row" href="/app/shop-voice-settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg><span><b>All settings</b><small>Taxes, company and other defaults</small></span><svg class="ms-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
+  </section>
+
+  <section class="ms-sheet ms-install" id="install" hidden>
+    <div class="ms-install-card">
+      <div class="ms-logo">{{ shop_name[0] | upper }}</div>
+      <div>
+        <b>Install {{ shop_name }}</b>
+        <p class="ms-help" id="install-help">Open it from your dock or home screen like any other app.</p>
+        <button class="ms-mini" id="install-btn" hidden>Install app</button>
+      </div>
     </div>
   </section>
+
+  {% if can_edit %}
+  <div class="ms-dock">
+    <button class="ms-btn" type="submit" form="form" id="save">Save changes</button>
+  </div>
+  {% endif %}
 </div>
-{% set tab = "settings" %}{% include "templates/includes/my_shop_tabs.html" %}
 
 <script>
 const CSRF = "{{ csrf_token }}";
