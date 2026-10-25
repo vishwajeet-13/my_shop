@@ -38,6 +38,8 @@
 		"m", "mm", "cm", "mtrs", "kgs", "litre", "litres", "ltr",
 	]);
 
+	const GLUED_QTY_UNITS = new Set(["kg", "kgs", "kilo", "l", "ltr", "litre", "litres"]);
+
 	const MATCH_THRESHOLD = 0.34;
 	const SUGGEST_THRESHOLD = 0.12;
 
@@ -50,6 +52,11 @@
 		return NUM_WORDS.has(token) ? NUM_WORDS.get(token) : null;
 	}
 
+	function unglue(token) {
+		const match = /^([0-9]+(?:\.[0-9]+)?)([a-z]+)$/.exec(token);
+		return match && GLUED_QTY_UNITS.has(match[2]) ? [match[1], match[2]] : [token];
+	}
+
 	function combine(previous, current) {
 		if (previous >= 20 && previous % 10 === 0 && current < 10) return previous + current;
 		return previous * current;
@@ -57,7 +64,7 @@
 
 	function parseTranscript(transcript) {
 		const text = normalise(transcript);
-		const tokens = text ? text.split(" ") : [];
+		const tokens = text ? text.split(" ").flatMap(unglue) : [];
 		const segments = [];
 		let qty = null;
 		let bump = 0;
