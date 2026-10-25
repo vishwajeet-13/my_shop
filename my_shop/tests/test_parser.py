@@ -23,6 +23,18 @@ class TestParseTranscript(UnitTestCase):
 	def test_leading_unit_is_stripped(self):
 		self.assertEqual(parse_transcript("2 kg wire nail"), [{"qty": 2, "phrase": "wire nail"}])
 
+	def test_loose_quantities(self):
+		self.assertEqual(
+			parse_transcript("aadha kilo chini dedh kg dal saade teen kilo aata sawa kilo ghee 0.75 kg tel"),
+			[
+				{"qty": 0.5, "phrase": "chini"},
+				{"qty": 1.5, "phrase": "dal"},
+				{"qty": 3.5, "phrase": "aata"},
+				{"qty": 1.25, "phrase": "ghee"},
+				{"qty": 0.75, "phrase": "tel"},
+			],
+		)
+
 	def test_words_before_first_number_are_ignored(self):
 		self.assertEqual(parse_transcript("bhaiya 1 hammer"), [{"qty": 1, "phrase": "hammer"}])
 
@@ -62,6 +74,7 @@ class TestOfflineParserParity(UnitTestCase):
 		"bhaiya 1 hammer",
 		"teen claw hammer aur ek wood screw 2 inch",
 		"4 bananas and 2 hammer",
+		"aadha kilo wire nail paune do kg washer sawa hammer 1.5 kg wire nail",
 		"",
 	]
 	items = TestMatchItem.items + [
