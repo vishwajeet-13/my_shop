@@ -60,7 +60,8 @@ def transcribe(audio: str, audio_format: str = "webm"):
 	require("Sales Invoice", "create")
 	names = "; ".join(i.item_name for i in get_shop_items(_settings().item_group))
 	prompt = (
-		"Write down this shop order exactly as spoken, in Roman letters, with numbers as digits. "
+		"Write down this shop order exactly as spoken, in Roman letters, with numbers as digits "
+		"and fractions as decimals (aadha 0.5, dedh 1.5, paav 0.25). "
 		f"It may be English, Hindi or Hinglish. Items this shop sells: {names}. "
 		"Reply with only the order text, or nothing if no order was spoken."
 	)

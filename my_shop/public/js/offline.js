@@ -18,8 +18,12 @@
 		terah: 13, chaudah: 14, pandrah: 15, solah: 16, satrah: 17,
 		atharah: 18, unnis: 19, bees: 20, tees: 30, chalis: 40, pachas: 50,
 		sau: 100,
+		aadha: 0.5, adha: 0.5, half: 0.5, dedh: 1.5, derh: 1.5,
+		dhai: 2.5, dhaai: 2.5, paav: 0.25, pav: 0.25, pao: 0.25, quarter: 0.25,
 		dozen: 12, darjan: 12,
 	}));
+
+	const BUMPS = new Map(Object.entries({ sawa: 0.25, saade: 0.5, sade: 0.5, paune: -0.25 }));
 
 	const STOPWORDS = new Set([
 		"and", "aur", "plus", "then", "also", "add", "please", "ka", "ke", "ki",
@@ -42,7 +46,7 @@
 	}
 
 	function asNumber(token) {
-		if (/^[0-9]+$/.test(token)) return parseInt(token, 10);
+		if (/^[0-9]+(\.[0-9]+)?$/.test(token)) return Number(token);
 		return NUM_WORDS.has(token) ? NUM_WORDS.get(token) : null;
 	}
 
@@ -56,6 +60,7 @@
 		const tokens = text ? text.split(" ") : [];
 		const segments = [];
 		let qty = null;
+		let bump = 0;
 		let words = [];
 
 		function close() {
@@ -76,9 +81,19 @@
 					continue;
 				}
 				close();
-				qty = value;
+				qty = value + bump;
 				words = [];
+				bump = 0;
+			} else if (BUMPS.has(token)) {
+				close();
+				qty = null;
+				words = [];
+				bump = BUMPS.get(token);
 			} else if (!STOPWORDS.has(token)) {
+				if (bump) {
+					qty = 1 + bump;
+					bump = 0;
+				}
 				words.push(token);
 			}
 		}

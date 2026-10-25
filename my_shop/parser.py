@@ -20,8 +20,13 @@ NUM_WORDS = {
 	"terah": 13, "chaudah": 14, "pandrah": 15, "solah": 16, "satrah": 17,
 	"atharah": 18, "unnis": 19, "bees": 20, "tees": 30, "chalis": 40, "pachas": 50,
 	"sau": 100,
+	"aadha": 0.5, "adha": 0.5, "half": 0.5, "dedh": 1.5, "derh": 1.5,
+	"dhai": 2.5, "dhaai": 2.5, "paav": 0.25, "pav": 0.25, "pao": 0.25, "quarter": 0.25,
 	"dozen": 12, "darjan": 12,
 }
+
+# "saade teen" is 3.5; "sawa kilo" alone is 1.25
+BUMPS = {"sawa": 0.25, "saade": 0.5, "sade": 0.5, "paune": -0.25}
 
 # words that carry no meaning for matching
 STOPWORDS = {
@@ -50,8 +55,8 @@ def _normalise(text: str) -> str:
 
 def _as_number(token: str):
 	"""Return the numeric value of a token, or None if it is not a number."""
-	if token.isdigit():
-		return int(token)
+	if re.fullmatch(r"\d+(\.\d+)?", token):
+		return float(token) if "." in token else int(token)
 	return NUM_WORDS.get(token)
 
 
@@ -71,6 +76,7 @@ def parse_transcript(transcript: str) -> list[dict]:
 	tokens = _normalise(transcript).split()
 	segments = []
 	qty = None
+	bump = 0
 	words = []
 
 	def close():
@@ -92,10 +98,15 @@ def parse_transcript(transcript: str) -> list[dict]:
 				qty = _combine(qty, value)
 				continue
 			close()
-			qty, words = value, []
+			qty, words, bump = value + bump, [], 0
+		elif token in BUMPS:
+			close()
+			qty, words, bump = None, [], BUMPS[token]
 		elif token in STOPWORDS:
 			continue
 		else:
+			if bump:
+				qty, bump = 1 + bump, 0
 			words.append(token)
 
 	close()
