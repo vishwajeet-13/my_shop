@@ -39,6 +39,7 @@ UNIT_WORDS = {
 }
 
 MATCH_THRESHOLD = 0.34
+SUGGEST_THRESHOLD = 0.12
 
 
 def _normalise(text: str) -> str:
@@ -134,26 +135,38 @@ def get_shop_items(item_group: str | None = None) -> list[dict]:
 	)
 
 
-def match_item(phrase: str, items: list[dict]) -> dict | None:
-	"""Best matching item for a spoken phrase, or None if nothing is close."""
-	best, best_score = None, 0.0
-	for item in items:
-		score = max(
+def _ranked(phrase: str, items: list[dict]) -> list[tuple[float, dict]]:
+	scored = [
+		(max(
 			_score(phrase, item.get("item_name") or ""),
 			_score(phrase, item.get("name") or ""),
 			_score(phrase, item.get("description") or ""),
-		)
-		if score > best_score:
-			best, best_score = item, score
+		), item)
+		for item in items
+	]
+	return sorted(scored, key=lambda pair: pair[0], reverse=True)
 
-	if best_score < MATCH_THRESHOLD:
+
+def match_item(phrase: str, items: list[dict]) -> dict | None:
+	"""Best matching item for a spoken phrase, or None if nothing is close."""
+	ranked = _ranked(phrase, items)
+	if not ranked or ranked[0][0] < MATCH_THRESHOLD:
 		return None
+	best_score, best = ranked[0]
 	return {
 		"item_code": best["name"],
 		"item_name": best["item_name"],
 		"uom": best["stock_uom"],
 		"score": round(best_score, 3),
 	}
+
+
+def suggest_items(phrase: str, items: list[dict], limit: int = 3) -> list[dict]:
+	return [
+		{"item_code": item["name"], "item_name": item["item_name"]}
+		for score, item in _ranked(phrase, items)[:limit]
+		if score >= SUGGEST_THRESHOLD
+	]
 
 
 def parse_and_match(transcript: str, item_group: str | None = None) -> dict:
@@ -166,6 +179,6 @@ def parse_and_match(transcript: str, item_group: str | None = None) -> dict:
 		if match:
 			rows.append({**match, "qty": segment["qty"], "heard": segment["phrase"]})
 		else:
-			unmatched.append(segment)
+			unmatched.append({**segment, "suggestions": suggest_items(segment["phrase"], items)})
 
 	return {"rows": rows, "unmatched": unmatched}

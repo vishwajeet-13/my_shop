@@ -2,6 +2,7 @@ import re
 
 import frappe
 from frappe import _
+from frappe.integrations.utils import make_post_request
 from frappe.utils import flt, getdate, now, nowdate
 
 from my_shop.install import CLIENT_REF
@@ -10,6 +11,7 @@ from my_shop.payments import CASH, PAYMENT_MODES, UDHAAR, record_payment, requir
 
 COMMON_UOMS = ("Nos", "Kg", "Meter", "Litre", "Packet", "Box", "Dozen")
 OFFLINE_DAYS = 30
+VOICE_MODELS = ["google/gemini-2.5-flash-lite", "google/gemini-2.5-flash"]
 
 
 def _settings():
@@ -42,13 +44,39 @@ def preview(transcript: str):
 	require("Sales Invoice", "create")
 	result = parse_and_match(transcript, _settings().item_group)
 
-	rates = _rates([r["item_code"] for r in result["rows"]])
-	for row in result["rows"]:
+	suggestions = [s for u in result["unmatched"] for s in u["suggestions"]]
+	rates = _rates([r["item_code"] for r in result["rows"] + suggestions])
+	for row in result["rows"] + suggestions:
 		row["rate"] = rates.get(row["item_code"], 0)
 
 	result["uoms"] = list(COMMON_UOMS)
 	result["currency"] = frappe.db.get_default("currency") or "INR"
 	return result
+
+
+@frappe.whitelist(methods=["POST"])
+def transcribe(audio: str, audio_format: str = "webm"):
+	"""Speech to text, with the shop's item names as spelling hints."""
+	require("Sales Invoice", "create")
+	names = "; ".join(i.item_name for i in get_shop_items(_settings().item_group))
+	prompt = (
+		"Write down this shop order exactly as spoken, in Roman letters, with numbers as digits. "
+		f"It may be English, Hindi or Hinglish. Items this shop sells: {names}. "
+		"Reply with only the order text, or nothing if no order was spoken."
+	)
+	try:
+		reply = make_post_request(
+			"https://openrouter.ai/api/v1/chat/completions",
+			headers={"Authorization": f"Bearer {frappe.conf.openrouter_key}"},
+			json={"models": VOICE_MODELS, "messages": [{"role": "user", "content": [
+				{"type": "text", "text": prompt},
+				{"type": "input_audio", "input_audio": {"data": audio, "format": audio_format}},
+			]}]},
+			timeout=30,
+		)
+	except Exception:
+		frappe.throw(_("Could not hear the order. Try again or type it."))
+	return reply["choices"][0]["message"]["content"].strip()
 
 
 @frappe.whitelist()

@@ -38,6 +38,7 @@
 <script>
 const CSRF = "{{ csrf_token }}";
 const LANG = "{{ speech_lang }}";
+const VOICE_MODEL = {{ voice_model|tojson }};
 const byId = (id) => document.getElementById(id);
 const ICONS = { cash: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/></svg>`, upi: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3M21 14v.01M14 21h3M21 18v3h-.01"/></svg>`, credit: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>` };
 const MODES = [["Cash", ICONS.cash], ["UPI", ICONS.upi], ["Udhaar", ICONS.credit]];
@@ -83,7 +84,68 @@ let heard = "";
 
 const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-if (!Recognition) {
+function base64(blob) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(",")[1]);
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function hear(blob, mimeType) {
+  const mic = byId("mic");
+  mic.disabled = true;
+  byId("tx").placeholder = "Hearing…";
+  try {
+    const text = await call("transcribe", { audio: await base64(blob), audio_format: mimeType.includes("mp4") ? "m4a" : "webm" });
+    if (text) { byId("tx").value = text; await addOrder(text); }
+    else setError("Didn't catch that. Tap the mic and speak again.");
+  } catch (e) {
+    setError(e instanceof Offline ? "Voice needs internet. Type the order instead." : e.message);
+  } finally {
+    mic.disabled = false;
+    byId("tx").placeholder = "Type an order";
+  }
+}
+
+if (VOICE_MODEL && window.MediaRecorder) {
+  let recorder = null;
+  let timer = null;
+
+  byId("mic").onclick = async () => {
+    setError("");
+    if (recorder) return recorder.stop();
+    if (!navigator.onLine) {
+      setError("Voice needs internet. Type the order instead.");
+      byId("tx").focus();
+      return;
+    }
+    if (bill.done) newOrder();
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (e) {
+      setError("Allow the microphone to use voice, or type the order.");
+      return;
+    }
+    const chunks = [];
+    recorder = new MediaRecorder(stream);
+    recorder.ondataavailable = (event) => chunks.push(event.data);
+    recorder.onstop = () => {
+      clearTimeout(timer);
+      stream.getTracks().forEach((track) => track.stop());
+      const { mimeType } = recorder;
+      recorder = null;
+      byId("mic").classList.remove("live");
+      hear(new Blob(chunks, { type: mimeType }), mimeType);
+    };
+    recorder.start();
+    timer = setTimeout(() => recorder.stop(), 30000);
+    byId("mic").classList.add("live");
+    byId("tx").value = "";
+    byId("tx").placeholder = "Listening… tap the mic when done";
+  };
+} else if (!Recognition) {
   byId("mic").disabled = true;
   byId("tx").placeholder = "Voice needs Chrome. Type the order";
 } else {
@@ -139,11 +201,7 @@ async function addOrder(text) {
   try {
     const review = await preview(transcript);
     bill.uoms = review.uoms;
-    review.rows.forEach((r) => {
-      const line = bill.lines.find((l) => l.item_code === r.item_code);
-      if (line) line.qty += Number(r.qty) || 0;
-      else bill.lines.push({ item_code: r.item_code, item_name: r.item_name, qty: Number(r.qty) || 0, rate: Number(r.rate) || 0 });
-    });
+    review.rows.forEach(addLine);
     bill.unmatched.push(...review.unmatched);
     if (!review.rows.length && !review.unmatched.length) setError("Nothing recognised in “" + transcript + "”.");
     if (!bill.ref) bill.ref = Store.newRef();
@@ -154,6 +212,12 @@ async function addOrder(text) {
   } finally {
     byId("add").disabled = false;
   }
+}
+
+function addLine(r) {
+  const line = bill.lines.find((l) => l.item_code === r.item_code);
+  if (line) line.qty += Number(r.qty) || 0;
+  else bill.lines.push({ item_code: r.item_code, item_name: r.item_name, qty: Number(r.qty) || 0, rate: Number(r.rate) || 0 });
 }
 
 async function preview(transcript) {
@@ -211,6 +275,8 @@ function render() {
   const missing = bill.unmatched.map((u, n) => `
     <div class="ms-add" data-n="${n}">
       <div class="ms-addhead">${u.qty} × “${esc(u.phrase)}” is not in your items</div>
+      ${u.suggestions?.length ? `<div class="ms-sugg">Did you mean ${u.suggestions.map((s, i) =>
+        `<button type="button" class="ms-mini" data-act="suggest" data-s="${i}">${esc(s.item_name)}</button>`).join("")}</div>` : ""}
       <div class="ms-addrow">
         <input class="newname" value="${esc(u.phrase)}" placeholder="Item name">
         <input class="rt" type="number" min="0" step="0.01" placeholder="Rate ₹">
@@ -375,6 +441,11 @@ byId("out").addEventListener("click", (event) => {
   if (act === "inc") setQty(i, bill.lines[i].qty + 1);
   if (act === "dec") setQty(i, bill.lines[i].qty - 1);
   if (act === "add") quickAdd(button);
+  if (act === "suggest") {
+    const [u] = bill.unmatched.splice(Number(button.closest(".ms-add").dataset.n), 1);
+    addLine({ ...u.suggestions[Number(button.dataset.s)], qty: u.qty });
+    render();
+  }
   if (act === "skip") { bill.unmatched.splice(Number(button.closest(".ms-add").dataset.n), 1); render(); }
   if (act === "print") window.open(lastInvoice.print_url, "_blank");
   if (act === "pick") pickCustomer(foundCustomers[Number(button.dataset.i)]);

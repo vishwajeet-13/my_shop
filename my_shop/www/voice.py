@@ -15,4 +15,5 @@ def get_context(context):
 	settings = frappe.get_cached_doc("Shop Voice Settings")
 	context.shop_name = settings.shop_name or "My Shop"
 	context.speech_lang = settings.speech_lang or "en-IN"
+	context.voice_model = bool(frappe.conf.openrouter_key)
 	return context

@@ -1,6 +1,6 @@
 from frappe.tests import UnitTestCase
 
-from my_shop.parser import match_item, parse_transcript
+from my_shop.parser import match_item, parse_transcript, suggest_items
 from my_shop.payments import whatsapp_link
 
 
@@ -38,6 +38,9 @@ class TestMatchItem(UnitTestCase):
 
 	def test_unknown_phrase_is_none(self):
 		self.assertIsNone(match_item("bananas", self.items))
+
+	def test_misheard_phrase_suggests_closest(self):
+		self.assertEqual(suggest_items("hammar", self.items)[0]["item_code"], "Claw Hammer")
 
 
 class TestWhatsappLink(UnitTestCase):

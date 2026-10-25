@@ -35,6 +35,7 @@
 	]);
 
 	const MATCH_THRESHOLD = 0.34;
+	const SUGGEST_THRESHOLD = 0.12;
 
 	function normalise(text) {
 		return (text || "").toLowerCase().replace(/[^a-z0-9\s.]/g, " ").replace(/\s+/g, " ").trim();
@@ -143,14 +144,23 @@
 		return 0.7 * (hits / phraseTokens.size) + 0.3 * ratio(phrase, candidate);
 	}
 
+	function ranked(phrase, items) {
+		return items
+			.map((item) => [Math.max(score(phrase, item.item_name || ""), score(phrase, item.name || ""), score(phrase, item.description || "")), item])
+			.sort((a, b) => b[0] - a[0]);
+	}
+
 	function matchItem(phrase, items) {
-		let best = null, bestScore = 0;
-		for (const item of items) {
-			const s = Math.max(score(phrase, item.item_name || ""), score(phrase, item.name || ""), score(phrase, item.description || ""));
-			if (s > bestScore) { best = item; bestScore = s; }
-		}
-		if (bestScore < MATCH_THRESHOLD) return null;
+		const [top] = ranked(phrase, items);
+		if (!top || top[0] < MATCH_THRESHOLD) return null;
+		const [bestScore, best] = top;
 		return { item_code: best.name, item_name: best.item_name, uom: best.stock_uom, score: Number(bestScore.toFixed(3)) };
+	}
+
+	function suggestItems(phrase, items, limit = 3) {
+		return ranked(phrase, items).slice(0, limit)
+			.filter(([s]) => s >= SUGGEST_THRESHOLD)
+			.map(([, item]) => ({ item_code: item.name, item_name: item.item_name, rate: item.rate || 0 }));
 	}
 
 	function parseAndMatch(transcript, items) {
@@ -161,7 +171,7 @@
 				const item = items.find((i) => i.name === match.item_code);
 				rows.push({ ...match, qty: segment.qty, heard: segment.phrase, rate: item.rate || 0 });
 			} else {
-				unmatched.push(segment);
+				unmatched.push({ ...segment, suggestions: suggestItems(segment.phrase, items) });
 			}
 		}
 		return { rows, unmatched };
