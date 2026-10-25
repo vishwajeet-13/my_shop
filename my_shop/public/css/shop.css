@@ -1224,7 +1224,7 @@ body:has(#ms-offline:not([hidden])) :is(.ms-wrap, .ms-reg) {
 	min-height: 0;
 	overflow-y: auto;
 	overscroll-behavior: contain;
-	padding-bottom: 24px;
+	padding-bottom: 12px;
 	border-block: 1px solid var(--line);
 	container-type: inline-size;
 }
@@ -1346,7 +1346,9 @@ body:has(#ms-offline:not([hidden])) :is(.ms-wrap, .ms-reg) {
 }
 
 .ms-reg-list .ms-checkout {
-	margin-top: 16px;
+	margin-top: 0;
+	padding-top: 14px;
+	border-top: 0;
 }
 
 .ms-reg-dock {
