@@ -43,6 +43,8 @@ UNIT_WORDS = {
 	"m", "mm", "cm", "mtrs", "kgs", "litre", "litres", "ltr",
 }
 
+GLUED_QTY_UNITS = {"kg", "kgs", "kilo", "l", "ltr", "litre", "litres"}
+
 MATCH_THRESHOLD = 0.34
 SUGGEST_THRESHOLD = 0.12
 
@@ -60,6 +62,12 @@ def _as_number(token: str):
 	return NUM_WORDS.get(token)
 
 
+def _unglue(token: str) -> list[str]:
+	"""Split "2kg" into "2", "kg". Sizes like "10mm" stay whole."""
+	match = re.fullmatch(r"(\d+(?:\.\d+)?)([a-z]+)", token)
+	return [match[1], match[2]] if match and match[2] in GLUED_QTY_UNITS else [token]
+
+
 def _combine(previous: int, current: int) -> int:
 	"""Fold two adjacent numbers. "twenty five" is 25, "two dozen" is 24."""
 	if previous >= 20 and previous % 10 == 0 and current < 10:
@@ -73,7 +81,7 @@ def parse_transcript(transcript: str) -> list[dict]:
 	A new line item starts every time a number appears after some item words.
 	Anything spoken before the first number is ignored.
 	"""
-	tokens = _normalise(transcript).split()
+	tokens = [part for token in _normalise(transcript).split() for part in _unglue(token)]
 	segments = []
 	qty = None
 	bump = 0

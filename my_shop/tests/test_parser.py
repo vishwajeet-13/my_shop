@@ -35,6 +35,17 @@ class TestParseTranscript(UnitTestCase):
 			],
 		)
 
+	def test_unit_glued_to_number(self):
+		self.assertEqual(
+			parse_transcript("2kg atta, 0.5kg chini, 1ltr tel, 5 nut bolt 10mm"),
+			[
+				{"qty": 2, "phrase": "atta"},
+				{"qty": 0.5, "phrase": "chini"},
+				{"qty": 1, "phrase": "tel"},
+				{"qty": 5, "phrase": "nut bolt 10mm"},
+			],
+		)
+
 	def test_words_before_first_number_are_ignored(self):
 		self.assertEqual(parse_transcript("bhaiya 1 hammer"), [{"qty": 1, "phrase": "hammer"}])
 
@@ -75,6 +86,7 @@ class TestOfflineParserParity(UnitTestCase):
 		"teen claw hammer aur ek wood screw 2 inch",
 		"4 bananas and 2 hammer",
 		"aadha kilo wire nail paune do kg washer sawa hammer 1.5 kg wire nail",
+		"2kg wire nail, 0.5kg washer, 3 nut bolt m8",
 		"",
 	]
 	items = TestMatchItem.items + [
