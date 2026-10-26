@@ -167,9 +167,8 @@ def get_shop_items(item_group: str | None = None) -> list[dict]:
 def _ranked(phrase: str, items: list[dict]) -> list[tuple[float, dict]]:
 	scored = [
 		(max(
-			_score(phrase, item.get("item_name") or ""),
-			_score(phrase, item.get("name") or ""),
-			_score(phrase, item.get("description") or ""),
+			_score(phrase, text)
+			for text in (item.get("item_name") or "", item.get("name") or "", *(item.get("description") or "").split(","))
 		), item)
 		for item in items
 	]

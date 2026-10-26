@@ -73,6 +73,13 @@ class TestMatchItem(UnitTestCase):
 	def test_unknown_phrase_is_none(self):
 		self.assertIsNone(match_item("bananas", self.items))
 
+	def test_each_other_name_is_matched_on_its_own(self):
+		items = [
+			{"name": "Aata", "item_name": "Aata", "description": "Aata, atta, gehun ka aata, wheat flour, chakki aata", "stock_uom": "Kg"},
+			{"name": "Brown Bread", "item_name": "Brown Bread", "description": "Brown Bread, atta bread", "stock_uom": "Packet"},
+		]
+		self.assertEqual(match_item("atta", items)["item_code"], "Aata")
+
 	def test_misheard_phrase_suggests_closest(self):
 		self.assertEqual(suggest_items("hammar", self.items)[0]["item_code"], "Claw Hammer")
 

@@ -184,7 +184,7 @@
 
 	function ranked(phrase, items) {
 		return items
-			.map((item) => [Math.max(score(phrase, item.item_name || ""), score(phrase, item.name || ""), score(phrase, item.description || "")), item])
+			.map((item) => [Math.max(score(phrase, item.item_name || ""), score(phrase, item.name || ""), ...(item.description || "").split(",").map((text) => score(phrase, text))), item])
 			.sort((a, b) => b[0] - a[0]);
 	}
 
