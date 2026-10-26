@@ -25,9 +25,12 @@
 
 	const BUMPS = new Map(Object.entries({ sawa: 0.25, saade: 0.5, sade: 0.5, paune: -0.25 }));
 
+	const RATE_WORDS = new Set(["wala", "wali", "wale", "waala", "waali", "waale", "rupay", "rupaye", "rupee", "rupees", "rs"]);
+
 	const STOPWORDS = new Set([
 		"and", "aur", "plus", "then", "also", "add", "please", "ka", "ke", "ki",
 		"or", "with", "the", "of", "chahiye", "dena", "de", "dedo", "bhi",
+		...RATE_WORDS,
 	]);
 
 	const UNIT_WORDS = new Set([
@@ -68,6 +71,7 @@
 		const segments = [];
 		let qty = null;
 		let bump = 0;
+		let rate = null;
 		let words = [];
 
 		function close() {
@@ -77,25 +81,37 @@
 				if (space > -1 && UNIT_WORDS.has(phrase.slice(0, space))) phrase = phrase.slice(space + 1);
 				else break;
 			}
-			if (qty && phrase) segments.push({ qty, phrase });
+			const count = qty || (rate ? 1 : null);
+			if (count && phrase) segments.push({ qty: count, phrase, ...(rate ? { rate } : {}) });
 		}
 
-		for (const token of tokens) {
+		tokens.forEach((token, index) => {
 			const value = asNumber(token);
-			if (value !== null) {
+			if (value !== null && RATE_WORDS.has(tokens[index + 1])) {
+				rate = value;
+				if (words.length) {
+					close();
+					qty = null;
+					words = [];
+					bump = 0;
+					rate = null;
+				}
+			} else if (value !== null) {
 				if (qty !== null && !words.length) {
 					qty = combine(qty, value);
-					continue;
+					return;
 				}
 				close();
 				qty = value + bump;
 				words = [];
 				bump = 0;
+				rate = null;
 			} else if (BUMPS.has(token)) {
 				close();
 				qty = null;
 				words = [];
 				bump = BUMPS.get(token);
+				rate = null;
 			} else if (!STOPWORDS.has(token)) {
 				if (bump) {
 					qty = 1 + bump;
@@ -103,7 +119,7 @@
 				}
 				words.push(token);
 			}
-		}
+		});
 		close();
 		return segments;
 	}
@@ -191,9 +207,10 @@
 			const match = matchItem(segment.phrase, items);
 			if (match) {
 				const item = items.find((i) => i.name === match.item_code);
-				rows.push({ ...match, qty: segment.qty, heard: segment.phrase, rate: item.rate || 0 });
+				rows.push({ ...match, qty: segment.qty, heard: segment.phrase, rate: segment.rate || item.rate || 0 });
 			} else {
-				unmatched.push({ ...segment, suggestions: suggestItems(segment.phrase, items) });
+				const suggestions = suggestItems(segment.phrase, items).map((s) => ({ ...s, rate: segment.rate || s.rate }));
+				unmatched.push({ ...segment, suggestions });
 			}
 		}
 		return { rows, unmatched };

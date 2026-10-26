@@ -131,6 +131,13 @@ class TestBilling(IntegrationTestCase):
 		with self.assertRaises(frappe.ValidationError):
 			self._bill(posting_date=frappe.utils.add_days(frappe.utils.nowdate(), 1))
 
+	def test_spoken_rate_overrides_price_for_this_bill_only(self):
+		name = frappe.db.get_value("Item", self.item, "item_name")
+		listed = api.preview(f"1 {name}")["rows"][0]
+		spoken = api.preview(f"1 {name} 14 wala")["rows"][0]
+		self.assertEqual((spoken["item_code"], spoken["rate"]), (listed["item_code"], 14))
+		self.assertEqual(api.preview(f"1 {name}")["rows"][0]["rate"], listed["rate"])
+
 	def test_offline_data_has_items_with_rates_and_customers(self):
 		customer = self._customer("9811122233")
 		data = api.offline_data()

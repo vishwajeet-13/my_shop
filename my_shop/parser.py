@@ -28,11 +28,13 @@ NUM_WORDS = {
 # "saade teen" is 3.5; "sawa kilo" alone is 1.25
 BUMPS = {"sawa": 0.25, "saade": 0.5, "sade": 0.5, "paune": -0.25}
 
+RATE_WORDS = {"wala", "wali", "wale", "waala", "waali", "waale", "rupay", "rupaye", "rupee", "rupees", "rs"}
+
 # words that carry no meaning for matching
 STOPWORDS = {
 	"and", "aur", "plus", "then", "also", "add", "please", "ka", "ke", "ki",
 	"or", "with", "the", "of", "chahiye", "dena", "de", "dedo", "bhi",
-}
+} | RATE_WORDS
 
 # unit words stripped from the front of an item phrase
 UNIT_WORDS = {
@@ -79,12 +81,14 @@ def parse_transcript(transcript: str) -> list[dict]:
 	"""Split a spoken order into [{"qty": 5, "phrase": "nut bolt"}, ...].
 
 	A new line item starts every time a number appears after some item words.
-	Anything spoken before the first number is ignored.
+	Anything spoken before the first number is ignored, unless a price was spoken.
+	"maggi 14 wala" adds "rate": 14 and means qty 1 when no quantity is said.
 	"""
 	tokens = [part for token in _normalise(transcript).split() for part in _unglue(token)]
 	segments = []
 	qty = None
 	bump = 0
+	rate = None
 	words = []
 
 	def close():
@@ -95,21 +99,27 @@ def parse_transcript(transcript: str) -> list[dict]:
 				phrase = parts[1]
 			else:
 				break
-		if qty and phrase:
-			segments.append({"qty": qty, "phrase": phrase})
+		count = qty or (1 if rate else None)
+		if count and phrase:
+			segments.append({"qty": count, "phrase": phrase, **({"rate": rate} if rate else {})})
 
-	for token in tokens:
+	for index, token in enumerate(tokens):
 		value = _as_number(token)
-		if value is not None:
+		if value is not None and index + 1 < len(tokens) and tokens[index + 1] in RATE_WORDS:
+			rate = value
+			if words:
+				close()
+				qty, words, bump, rate = None, [], 0, None
+		elif value is not None:
 			if qty is not None and not words:
 				# two numbers in a row, e.g. "twenty five" or "two dozen"
 				qty = _combine(qty, value)
 				continue
 			close()
-			qty, words, bump = value + bump, [], 0
+			qty, words, bump, rate = value + bump, [], 0, None
 		elif token in BUMPS:
 			close()
-			qty, words, bump = None, [], BUMPS[token]
+			qty, words, bump, rate = None, [], BUMPS[token], None
 		elif token in STOPWORDS:
 			continue
 		else:
@@ -196,8 +206,9 @@ def parse_and_match(transcript: str, item_group: str | None = None) -> dict:
 	for segment in parse_transcript(transcript):
 		match = match_item(segment["phrase"], items)
 		if match:
-			rows.append({**match, "qty": segment["qty"], "heard": segment["phrase"]})
+			rows.append({**match, "qty": segment["qty"], "heard": segment["phrase"], "rate": segment.get("rate")})
 		else:
-			unmatched.append({**segment, "suggestions": suggest_items(segment["phrase"], items)})
+			suggestions = [{**s, "rate": segment.get("rate")} for s in suggest_items(segment["phrase"], items)]
+			unmatched.append({**segment, "suggestions": suggestions})
 
 	return {"rows": rows, "unmatched": unmatched}

@@ -239,9 +239,10 @@ async function addOrder(text) {
 }
 
 function addLine(r) {
-  const line = bill.lines.find((l) => l.item_code === r.item_code);
+  const rate = Number(r.rate) || 0;
+  const line = bill.lines.find((l) => l.item_code === r.item_code && l.rate === rate);
   if (line) line.qty += Number(r.qty) || 0;
-  else bill.lines.push({ item_code: r.item_code, item_name: r.item_name, qty: Number(r.qty) || 0, rate: Number(r.rate) || 0 });
+  else bill.lines.push({ item_code: r.item_code, item_name: r.item_name, qty: Number(r.qty) || 0, rate });
 }
 
 async function preview(transcript) {
@@ -303,7 +304,7 @@ function render() {
         `<button type="button" class="ms-mini" data-act="suggest" data-s="${i}">${esc(s.item_name)}</button>`).join("")}</div>` : ""}
       <div class="ms-addrow">
         <input class="newname" value="${esc(u.phrase)}" placeholder="Item name">
-        <input class="rt" type="number" min="0" step="0.01" placeholder="Rate ₹">
+        <input class="rt" type="number" min="0" step="0.01" placeholder="Rate ₹" value="${u.rate || ""}">
         <select class="um">${uoms}</select>
         <button class="ms-mini" data-act="add">Add item</button>
         <button class="ms-mini ghost" data-act="skip">Skip</button>

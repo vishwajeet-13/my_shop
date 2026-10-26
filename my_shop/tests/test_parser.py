@@ -49,6 +49,17 @@ class TestParseTranscript(UnitTestCase):
 	def test_words_before_first_number_are_ignored(self):
 		self.assertEqual(parse_transcript("bhaiya 1 hammer"), [{"qty": 1, "phrase": "hammer"}])
 
+	def test_spoken_rate(self):
+		self.assertEqual(
+			parse_transcript("2 maggi 14 wala, phali 30 rupay wali, 32 wali phali aur 1 kg aata"),
+			[
+				{"qty": 2, "phrase": "maggi", "rate": 14},
+				{"qty": 1, "phrase": "phali", "rate": 30},
+				{"qty": 1, "phrase": "phali", "rate": 32},
+				{"qty": 1, "phrase": "aata"},
+			],
+		)
+
 
 class TestMatchItem(UnitTestCase):
 	items = [
@@ -87,6 +98,7 @@ class TestOfflineParserParity(UnitTestCase):
 		"4 bananas and 2 hammer",
 		"aadha kilo wire nail paune do kg washer sawa hammer 1.5 kg wire nail",
 		"2kg wire nail, 0.5kg washer, 3 nut bolt m8",
+		"2 washer 14 wala, hammer 30 rupay wali, 32 wali hammer aur 1 kg wire nail",
 		"",
 	]
 	items = TestMatchItem.items + [
