@@ -38,10 +38,12 @@
 		"pcs", "pc", "nos", "no", "meter", "meters", "metre", "metres", "mtr", "feet",
 		"foot", "ft", "inch", "inches", "packet", "packets", "pkt", "box", "boxes",
 		"unit", "units", "set", "sets", "bundle", "bundles", "roll", "rolls",
-		"m", "mm", "cm", "mtrs", "kgs", "litre", "litres", "ltr",
+		"m", "mm", "cm", "mtrs", "kgs", "litre", "litres", "ltr", "gms", "g", "ml",
 	]);
 
-	const GLUED_QTY_UNITS = new Set(["kg", "kgs", "kilo", "l", "ltr", "litre", "litres"]);
+	const SMALL_UNITS = new Map(Object.entries({ gram: "Kg", grams: "Kg", gm: "Kg", gms: "Kg", g: "Kg", ml: "Litre" }));
+
+	const GLUED_QTY_UNITS = new Set(["kg", "kgs", "kilo", "l", "ltr", "litre", "litres", "g", "gm", "gms", "ml"]);
 
 	const MATCH_THRESHOLD = 0.34;
 	const SUGGEST_THRESHOLD = 0.12;
@@ -76,13 +78,15 @@
 
 		function close() {
 			let phrase = words.filter((w) => !STOPWORDS.has(w)).join(" ");
+			let unit = null;
 			for (;;) {
 				const space = phrase.indexOf(" ");
-				if (space > -1 && UNIT_WORDS.has(phrase.slice(0, space))) phrase = phrase.slice(space + 1);
-				else break;
+				if (space === -1 || !UNIT_WORDS.has(phrase.slice(0, space))) break;
+				unit = SMALL_UNITS.get(phrase.slice(0, space)) || unit;
+				phrase = phrase.slice(space + 1);
 			}
 			const count = qty || (rate ? 1 : null);
-			if (count && phrase) segments.push({ qty: count, phrase, ...(rate ? { rate } : {}) });
+			if (count && phrase) segments.push({ qty: unit ? count / 1000 : count, phrase, ...(rate ? { rate } : {}), ...(unit ? { unit } : {}) });
 		}
 
 		tokens.forEach((token, index) => {
@@ -207,7 +211,8 @@
 			const match = matchItem(segment.phrase, items);
 			if (match) {
 				const item = items.find((i) => i.name === match.item_code);
-				rows.push({ ...match, qty: segment.qty, heard: segment.phrase, rate: segment.rate || item.rate || 0 });
+				const qty = !segment.unit || segment.unit === match.uom ? segment.qty : 1;
+				rows.push({ ...match, qty, heard: segment.phrase, rate: segment.rate || item.rate || 0 });
 			} else {
 				const suggestions = suggestItems(segment.phrase, items).map((s) => ({ ...s, rate: segment.rate || s.rate }));
 				unmatched.push({ ...segment, suggestions });

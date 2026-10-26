@@ -1,6 +1,6 @@
 from frappe.tests import UnitTestCase
 
-from my_shop.parser import match_item, parse_transcript, suggest_items
+from my_shop.parser import match_item, parse_and_match, parse_transcript, suggest_items
 from my_shop.payments import whatsapp_link
 
 
@@ -48,6 +48,27 @@ class TestParseTranscript(UnitTestCase):
 
 	def test_words_before_first_number_are_ignored(self):
 		self.assertEqual(parse_transcript("bhaiya 1 hammer"), [{"qty": 1, "phrase": "hammer"}])
+
+	def test_grams_and_ml_become_kg_and_litre(self):
+		self.assertEqual(
+			parse_transcript("250 gram jeera, 500ml tel, 100g chai patti"),
+			[
+				{"qty": 0.25, "phrase": "jeera", "unit": "Kg"},
+				{"qty": 0.5, "phrase": "tel", "unit": "Litre"},
+				{"qty": 0.1, "phrase": "chai patti", "unit": "Kg"},
+			],
+		)
+
+	def test_grams_of_a_packet_item_is_one_packet(self):
+		from unittest.mock import patch
+
+		items = [
+			{"name": "Jeera", "item_name": "Jeera", "description": "", "stock_uom": "Packet"},
+			{"name": "Cheeni", "item_name": "Cheeni", "description": "", "stock_uom": "Kg"},
+		]
+		with patch("my_shop.parser.get_shop_items", return_value=items):
+			rows = parse_and_match("250 gram jeera, 250 gram cheeni")["rows"]
+		self.assertEqual([r["qty"] for r in rows], [1, 0.25])
 
 	def test_spoken_rate(self):
 		self.assertEqual(
@@ -106,6 +127,7 @@ class TestOfflineParserParity(UnitTestCase):
 		"aadha kilo wire nail paune do kg washer sawa hammer 1.5 kg wire nail",
 		"2kg wire nail, 0.5kg washer, 3 nut bolt m8",
 		"2 washer 14 wala, hammer 30 rupay wali, 32 wali hammer aur 1 kg wire nail",
+		"250 gram wire nail, 500ml washer, 100g hammer",
 		"",
 	]
 	items = TestMatchItem.items + [
