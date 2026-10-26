@@ -12,7 +12,11 @@
   .ms-saved { margin-top: 12px; color: var(--green); font-weight: 600; }
   .ms-saved:empty { display: none; }
   .ms-install[hidden], .ms-install [hidden] { display: none; }
-  .ms-install-card { display: flex; gap: 14px; align-items: flex-start; padding: 14px; border-radius: var(--radius-sm); background: var(--field); }
+  .ms-install { position: fixed; z-index: 20; left: 50%; transform: translateX(-50%); width: min(480px, 100%); padding: 0 20px; bottom: calc(16px + env(safe-area-inset-bottom)); }
+  .ms-wrap:has(.ms-dock) .ms-install { bottom: calc(89px + env(safe-area-inset-bottom)); }
+  .ms-wrap:has(.ms-install:not([hidden])) .ms-dock, .ms-wrap:has(.ms-install:not([hidden])):not(:has(.ms-dock)) { margin-top: 170px; }
+  .ms-install-card { position: relative; display: flex; gap: 14px; align-items: flex-start; padding: 14px 44px 14px 14px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--field); box-shadow: var(--shadow-lift); }
+  .ms-install-x { position: absolute; top: 4px; right: 4px; border: 0; background: none; padding: 0; cursor: pointer; }
   .ms-install-card .ms-logo { width: 40px; height: 40px; font-size: 18px; box-shadow: none; }
   .ms-install-card > div > b { display: block; }
   .ms-install-card .ms-help { margin: 2px 0 0; }
@@ -51,8 +55,9 @@
     <a class="ms-row" href="/app/shop-voice-settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg><span><b>All settings</b><small>Taxes, company and other defaults</small></span><svg class="ms-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
   </section>
 
-  <section class="ms-sheet ms-install" id="install" hidden>
+  <section class="ms-install" id="install" hidden>
     <div class="ms-install-card">
+      <button class="ms-icon ms-install-x" id="install-close" type="button" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
       <div class="ms-logo">{{ shop_name[0] | upper }}</div>
       <div>
         <b>Install {{ shop_name }}</b>
@@ -98,6 +103,15 @@ byId("save") && byId("form").addEventListener("submit", async (event) => {
 });
 
 let installPrompt = null;
+const INSTALL_CLOSED = "my_shop_install_closed";
+function showInstall() {
+  try { if (localStorage.getItem(INSTALL_CLOSED)) return; } catch {}
+  byId("install").hidden = false;
+}
+byId("install-close").addEventListener("click", () => {
+  byId("install").hidden = true;
+  try { localStorage.setItem(INSTALL_CLOSED, "1"); } catch {}
+});
 const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone;
 const ua = navigator.userAgent;
 const isSafari = /safari/i.test(ua) && !/chrome|chromium|crios|android|edg/i.test(ua);
@@ -115,7 +129,7 @@ if (!standalone) {
   else if (isEdge) help = "Open the <b>…</b> menu → <b>Apps</b> → <b>Install this site as an app</b>.";
   else if (isAndroid) help = "Open the <b>⋮</b> menu → <b>Add to Home screen</b> or <b>Install app</b>.";
   byId("install-help").innerHTML = help;
-  byId("install").hidden = false;
+  showInstall();
 }
 
 window.addEventListener("beforeinstallprompt", (event) => {
@@ -123,7 +137,7 @@ window.addEventListener("beforeinstallprompt", (event) => {
   installPrompt = event;
   byId("install-help").textContent = "Open it from your dock or home screen like any other app.";
   byId("install-btn").hidden = false;
-  byId("install").hidden = false;
+  showInstall();
 });
 byId("install-btn").addEventListener("click", async () => {
   if (!installPrompt) return;
