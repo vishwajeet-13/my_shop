@@ -993,6 +993,7 @@ input[type="number"] {
 }
 
 .ms-row:hover {
+	color: var(--ink);
 	text-decoration: none;
 }
 
