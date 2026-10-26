@@ -11,7 +11,7 @@ from my_shop.payments import CASH, PAYMENT_MODES, UDHAAR, record_payment, requir
 
 COMMON_UOMS = ("Nos", "Kg", "Meter", "Litre", "Packet", "Box", "Dozen")
 OFFLINE_DAYS = 30
-VOICE_MODELS = ["google/gemini-2.5-flash-lite", "google/gemini-2.5-flash"]
+VOICE_MODELS = ["google/gemini-3.5-flash-lite", "openai/gpt-audio-mini"]
 
 
 def _settings():
@@ -47,7 +47,7 @@ def preview(transcript: str):
 	suggestions = [s for u in result["unmatched"] for s in u["suggestions"]]
 	rates = _rates([r["item_code"] for r in result["rows"] + suggestions])
 	for row in result["rows"] + suggestions:
-		row["rate"] = rates.get(row["item_code"], 0)
+		row["rate"] = row.get("rate") or rates.get(row["item_code"], 0)
 
 	result["uoms"] = list(COMMON_UOMS)
 	result["currency"] = frappe.db.get_default("currency") or "INR"
@@ -63,6 +63,7 @@ def transcribe(audio: str, audio_format: str = "webm"):
 		"Write down this shop order exactly as spoken, in Roman letters, with numbers as digits "
 		"and fractions as decimals (aadha 0.5, dedh 1.5, paav 0.25). "
 		f"It may be English, Hindi or Hinglish. Items this shop sells: {names}. "
+		"Leave out filler words like theek hai, haan, bas. Keep a spoken price with its word, like 14 wala. "
 		"Reply with only the order text, or nothing if no order was spoken."
 	)
 	try:
