@@ -42,10 +42,12 @@ UNIT_WORDS = {
 	"pcs", "pc", "nos", "no", "meter", "meters", "metre", "metres", "mtr", "feet",
 	"foot", "ft", "inch", "inches", "packet", "packets", "pkt", "box", "boxes",
 	"unit", "units", "set", "sets", "bundle", "bundles", "roll", "rolls",
-	"m", "mm", "cm", "mtrs", "kgs", "litre", "litres", "ltr",
+	"m", "mm", "cm", "mtrs", "kgs", "litre", "litres", "ltr", "gms", "g", "ml",
 }
 
-GLUED_QTY_UNITS = {"kg", "kgs", "kilo", "l", "ltr", "litre", "litres"}
+SMALL_UNITS = {"gram": "Kg", "grams": "Kg", "gm": "Kg", "gms": "Kg", "g": "Kg", "ml": "Litre"}
+
+GLUED_QTY_UNITS = {"kg", "kgs", "kilo", "l", "ltr", "litre", "litres", "g", "gm", "gms", "ml"}
 
 MATCH_THRESHOLD = 0.34
 SUGGEST_THRESHOLD = 0.12
@@ -93,15 +95,22 @@ def parse_transcript(transcript: str) -> list[dict]:
 
 	def close():
 		phrase = " ".join(w for w in words if w not in STOPWORDS)
+		unit = None
 		while True:
 			parts = phrase.split(" ", 1)
 			if len(parts) == 2 and parts[0] in UNIT_WORDS:
+				unit = SMALL_UNITS.get(parts[0], unit)
 				phrase = parts[1]
 			else:
 				break
 		count = qty or (1 if rate else None)
 		if count and phrase:
-			segments.append({"qty": count, "phrase": phrase, **({"rate": rate} if rate else {})})
+			segments.append({
+				"qty": count / 1000 if unit else count,
+				"phrase": phrase,
+				**({"rate": rate} if rate else {}),
+				**({"unit": unit} if unit else {}),
+			})
 
 	for index, token in enumerate(tokens):
 		value = _as_number(token)
@@ -205,7 +214,8 @@ def parse_and_match(transcript: str, item_group: str | None = None) -> dict:
 	for segment in parse_transcript(transcript):
 		match = match_item(segment["phrase"], items)
 		if match:
-			rows.append({**match, "qty": segment["qty"], "heard": segment["phrase"], "rate": segment.get("rate")})
+			qty = segment["qty"] if segment.get("unit") in (None, match["uom"]) else 1
+			rows.append({**match, "qty": qty, "heard": segment["phrase"], "rate": segment.get("rate")})
 		else:
 			suggestions = [{**s, "rate": segment.get("rate")} for s in suggest_items(segment["phrase"], items)]
 			unmatched.append({**segment, "suggestions": suggestions})
