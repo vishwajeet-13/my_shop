@@ -40,6 +40,12 @@ class TestBilling(IntegrationTestCase):
 		self.assertEqual(bill["outstanding"], 0)
 		self.assertEqual(self._payment_modes(bill["name"]), ["Cash"])
 
+	def test_printed_bill_shows_loose_quantity(self):
+		from frappe.website.serve import get_response_content
+
+		frappe.form_dict.name = self._bill(qty=0.5)["name"]
+		self.assertIn('<div class="ms-mono">0.5</div>', get_response_content("invoice"))
+
 	def test_upi_bill_is_paid_by_upi(self):
 		bill = self._bill(payment_mode="UPI")
 		self.assertEqual(bill["status"], "Paid")

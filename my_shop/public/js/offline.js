@@ -25,6 +25,8 @@
 
 	const BUMPS = new Map(Object.entries({ sawa: 0.25, saade: 0.5, sade: 0.5, paune: -0.25 }));
 
+	const SEPARATORS = new Set(["and", "aur", "plus"]);
+
 	const RATE_WORDS = new Set(["wala", "wali", "wale", "waala", "waali", "waale", "rupay", "rupaye", "rupee", "rupees", "rs"]);
 
 	const STOPWORDS = new Set([
@@ -47,6 +49,7 @@
 
 	const MATCH_THRESHOLD = 0.34;
 	const SUGGEST_THRESHOLD = 0.12;
+	const AMBIGUOUS_MARGIN = 0.05;
 
 	function normalise(text) {
 		return (text || "").toLowerCase().replace(/[^a-z0-9\s.]/g, " ").replace(/\s+/g, " ").trim();
@@ -68,7 +71,7 @@
 	}
 
 	function parseTranscript(transcript) {
-		const text = normalise(transcript);
+		const text = normalise((transcript || "").replaceAll(",", " and "));
 		const tokens = text ? text.split(" ").flatMap(unglue) : [];
 		const segments = [];
 		let qty = null;
@@ -76,7 +79,7 @@
 		let rate = null;
 		let words = [];
 
-		function close() {
+		function close(fallback = null) {
 			let phrase = words.filter((w) => !STOPWORDS.has(w)).join(" ");
 			let unit = null;
 			for (;;) {
@@ -85,7 +88,7 @@
 				unit = SMALL_UNITS.get(phrase.slice(0, space)) || unit;
 				phrase = phrase.slice(space + 1);
 			}
-			const count = qty || (rate ? 1 : null);
+			const count = qty || (rate ? 1 : fallback);
 			if (count && phrase) segments.push({ qty: unit ? count / 1000 : count, phrase, ...(rate ? { rate } : {}), ...(unit ? { unit } : {}) });
 		}
 
@@ -116,6 +119,12 @@
 				words = [];
 				bump = BUMPS.get(token);
 				rate = null;
+			} else if (SEPARATORS.has(token) && words.length) {
+				close(1);
+				qty = null;
+				words = [];
+				bump = 0;
+				rate = null;
 			} else if (!STOPWORDS.has(token)) {
 				if (bump) {
 					qty = 1 + bump;
@@ -124,7 +133,7 @@
 				words.push(token);
 			}
 		});
-		close();
+		close(1);
 		return segments;
 	}
 
@@ -173,28 +182,29 @@
 		return total ? (2 * matched) / total : 1;
 	}
 
-	function score(phrase, candidate) {
-		candidate = normalise(candidate);
-		if (!candidate) return 0;
+	function score(phrase, names) {
+		names = names.map(normalise).filter(Boolean);
 		const phraseTokens = new Set(phrase.split(" ").filter(Boolean));
-		const candidateTokens = [...new Set(candidate.split(" "))];
-		if (!phraseTokens.size) return 0;
+		if (!names.length || !phraseTokens.size) return 0;
+		const candidateTokens = [...new Set(names.flatMap((name) => name.split(" ")))];
 		let hits = 0;
 		for (const pt of phraseTokens) {
-			if (candidateTokens.some((ct) => ct === pt || ct.startsWith(pt))) hits++;
+			if (candidateTokens.includes(pt)) hits += 1;
+			else if (candidateTokens.some((ct) => ct.startsWith(pt))) hits += 0.5;
 		}
-		return 0.7 * (hits / phraseTokens.size) + 0.3 * ratio(phrase, candidate);
+		return 0.7 * (hits / phraseTokens.size) + 0.3 * Math.max(...names.map((name) => ratio(phrase, name)));
 	}
 
 	function ranked(phrase, items) {
 		return items
-			.map((item) => [Math.max(score(phrase, item.item_name || ""), score(phrase, item.name || ""), ...(item.description || "").split(",").map((text) => score(phrase, text))), item])
+			.map((item) => [score(phrase, [item.item_name || "", item.name || "", ...(item.description || "").split(",")]), item])
 			.sort((a, b) => b[0] - a[0]);
 	}
 
 	function matchItem(phrase, items) {
-		const [top] = ranked(phrase, items);
+		const [top, next] = ranked(phrase, items);
 		if (!top || top[0] < MATCH_THRESHOLD) return null;
+		if (next && top[0] < 1 && next[0] > top[0] - AMBIGUOUS_MARGIN) return null;
 		const [bestScore, best] = top;
 		return { item_code: best.name, item_name: best.item_name, uom: best.stock_uom, score: Number(bestScore.toFixed(3)) };
 	}

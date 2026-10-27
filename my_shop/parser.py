@@ -28,6 +28,8 @@ NUM_WORDS = {
 # "saade teen" is 3.5; "sawa kilo" alone is 1.25
 BUMPS = {"sawa": 0.25, "saade": 0.5, "sade": 0.5, "paune": -0.25}
 
+SEPARATORS = {"and", "aur", "plus"}
+
 RATE_WORDS = {"wala", "wali", "wale", "waala", "waali", "waale", "rupay", "rupaye", "rupee", "rupees", "rs"}
 
 # words that carry no meaning for matching
@@ -51,6 +53,7 @@ GLUED_QTY_UNITS = {"kg", "kgs", "kilo", "l", "ltr", "litre", "litres", "g", "gm"
 
 MATCH_THRESHOLD = 0.34
 SUGGEST_THRESHOLD = 0.12
+AMBIGUOUS_MARGIN = 0.05
 
 
 def _normalise(text: str) -> str:
@@ -83,9 +86,11 @@ def parse_transcript(transcript: str) -> list[dict]:
 	"""Split a spoken order into [{"qty": 5, "phrase": "nut bolt"}, ...].
 
 	A new line item starts every time a number appears after some item words.
-	Anything spoken before the first number is ignored, unless a price was spoken.
+	Words before a number with no quantity of their own are ignored, so "bhaiya 1 hammer" is one hammer.
+	An item with no quantity before "aur", a comma, or the end of the order means qty 1.
 	"maggi 14 wala" adds "rate": 14 and means qty 1 when no quantity is said.
 	"""
+	transcript = (transcript or "").replace(",", " and ")
 	tokens = [part for token in _normalise(transcript).split() for part in _unglue(token)]
 	segments = []
 	qty = None
@@ -93,7 +98,7 @@ def parse_transcript(transcript: str) -> list[dict]:
 	rate = None
 	words = []
 
-	def close():
+	def close(default=None):
 		phrase = " ".join(w for w in words if w not in STOPWORDS)
 		unit = None
 		while True:
@@ -103,7 +108,7 @@ def parse_transcript(transcript: str) -> list[dict]:
 				phrase = parts[1]
 			else:
 				break
-		count = qty or (1 if rate else None)
+		count = qty or (1 if rate else default)
 		if count and phrase:
 			segments.append({
 				"qty": count / 1000 if unit else count,
@@ -129,6 +134,9 @@ def parse_transcript(transcript: str) -> list[dict]:
 		elif token in BUMPS:
 			close()
 			qty, words, bump, rate = None, [], BUMPS[token], None
+		elif token in SEPARATORS and words:
+			close(default=1)
+			qty, words, bump, rate = None, [], 0, None
 		elif token in STOPWORDS:
 			continue
 		else:
@@ -136,28 +144,25 @@ def parse_transcript(transcript: str) -> list[dict]:
 				qty, bump = 1 + bump, 0
 			words.append(token)
 
-	close()
+	close(default=1)
 	return segments
 
 
-def _score(phrase: str, candidate: str) -> float:
-	"""Blend token overlap with fuzzy string similarity."""
-	candidate = _normalise(candidate)
-	if not candidate:
-		return 0.0
-
+def _score(phrase: str, names: list[str]) -> float:
+	"""Blend token overlap across all of an item's names with the best fuzzy similarity to one name."""
+	names = [n for n in map(_normalise, names) if n]
 	phrase_tokens = set(phrase.split())
-	candidate_tokens = set(candidate.split())
-	if not phrase_tokens:
+	if not (names and phrase_tokens):
 		return 0.0
 
-	# a phrase token counts if it appears whole, or as a prefix of a longer word
+	candidate_tokens = {t for name in names for t in name.split()}
+	# a whole word counts fully, the start of a longer word ("kurk" in "kurkure") half
 	hits = sum(
-		1 for pt in phrase_tokens
-		if pt in candidate_tokens or any(ct.startswith(pt) for ct in candidate_tokens)
+		1 if pt in candidate_tokens else 0.5 if any(ct.startswith(pt) for ct in candidate_tokens) else 0
+		for pt in phrase_tokens
 	)
 	overlap = hits / len(phrase_tokens)
-	fuzzy = SequenceMatcher(None, phrase, candidate).ratio()
+	fuzzy = max(SequenceMatcher(None, phrase, name).ratio() for name in names)
 	return 0.7 * overlap + 0.3 * fuzzy
 
 
@@ -175,10 +180,7 @@ def get_shop_items(item_group: str | None = None) -> list[dict]:
 
 def _ranked(phrase: str, items: list[dict]) -> list[tuple[float, dict]]:
 	scored = [
-		(max(
-			_score(phrase, text)
-			for text in (item.get("item_name") or "", item.get("name") or "", *(item.get("description") or "").split(","))
-		), item)
+		(_score(phrase, [item.get("item_name") or "", item.get("name") or "", *(item.get("description") or "").split(",")]), item)
 		for item in items
 	]
 	return sorted(scored, key=lambda pair: pair[0], reverse=True)
@@ -188,6 +190,8 @@ def match_item(phrase: str, items: list[dict]) -> dict | None:
 	"""Best matching item for a spoken phrase, or None if nothing is close."""
 	ranked = _ranked(phrase, items)
 	if not ranked or ranked[0][0] < MATCH_THRESHOLD:
+		return None
+	if len(ranked) > 1 and ranked[0][0] < 1 and ranked[1][0] > ranked[0][0] - AMBIGUOUS_MARGIN:
 		return None
 	best_score, best = ranked[0]
 	return {

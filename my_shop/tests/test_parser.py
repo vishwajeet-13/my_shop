@@ -49,6 +49,13 @@ class TestParseTranscript(UnitTestCase):
 	def test_words_before_first_number_are_ignored(self):
 		self.assertEqual(parse_transcript("bhaiya 1 hammer"), [{"qty": 1, "phrase": "hammer"}])
 
+	def test_item_without_a_number_is_one(self):
+		self.assertEqual(
+			parse_transcript("2 maggi aur kurkure, chips"),
+			[{"qty": 2, "phrase": "maggi"}, {"qty": 1, "phrase": "kurkure"}, {"qty": 1, "phrase": "chips"}],
+		)
+		self.assertEqual(parse_transcript("maggi"), [{"qty": 1, "phrase": "maggi"}])
+
 	def test_grams_and_ml_become_kg_and_litre(self):
 		self.assertEqual(
 			parse_transcript("250 gram jeera, 500ml tel, 100g chai patti"),
@@ -101,6 +108,23 @@ class TestMatchItem(UnitTestCase):
 		]
 		self.assertEqual(match_item("atta", items)["item_code"], "Aata")
 
+	def test_words_from_different_other_names_add_up(self):
+		items = [
+			{"name": "Namak", "item_name": "Namak", "description": "Namak, salt, tata namak", "stock_uom": "Packet"},
+			{"name": "Chai Patti", "item_name": "Chai Patti", "description": "Chai Patti, tata tea", "stock_uom": "Packet"},
+		]
+		self.assertEqual(match_item("tata salt", items)["item_code"], "Namak")
+
+	def test_close_tie_is_left_to_suggestions(self):
+		items = [
+			{"name": "Vanaspati", "item_name": "Vanaspati", "description": "Vanaspati, dalda", "stock_uom": "Litre"},
+			{"name": "Toor Dal", "item_name": "Toor Dal", "description": "Toor Dal, arhar dal", "stock_uom": "Kg"},
+			{"name": "Moong Dal", "item_name": "Moong Dal", "description": "Moong Dal, mung dal", "stock_uom": "Kg"},
+		]
+		self.assertIsNone(match_item("dal", items))
+		self.assertEqual({s["item_code"] for s in suggest_items("dal", items)[:2]}, {"Toor Dal", "Moong Dal"})
+		self.assertEqual(match_item("toor dal", items)["item_code"], "Toor Dal")
+
 	def test_misheard_phrase_suggests_closest(self):
 		self.assertEqual(suggest_items("hammar", self.items)[0]["item_code"], "Claw Hammer")
 
@@ -128,6 +152,8 @@ class TestOfflineParserParity(UnitTestCase):
 		"2kg wire nail, 0.5kg washer, 3 nut bolt m8",
 		"2 washer 14 wala, hammer 30 rupay wali, 32 wali hammer aur 1 kg wire nail",
 		"250 gram wire nail, 500ml washer, 100g hammer",
+		"2 washer aur hammer, wire nail",
+		"nail",
 		"",
 	]
 	items = TestMatchItem.items + [
