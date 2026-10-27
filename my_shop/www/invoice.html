@@ -69,7 +69,7 @@
         <div class="ms-ghead"><div>Qty</div><div>Item</div><div class="ms-ar ms-rate">Rate</div><div class="ms-ar">Amount</div></div>
         {% for item in invoice.items %}
         <div class="ms-grow">
-          <div class="ms-mono">{{ item.qty | int }}</div>
+          <div class="ms-mono">{{ "%g"|format(item.qty) }}</div>
           <div class="ms-gname">{{ item.item_name }}<span class="ms-sub">@ ₹{{ "%.2f"|format(item.rate) }}</span></div>
           <div class="ms-ar ms-mono ms-rate">₹{{ "%.2f"|format(item.rate) }}</div>
           <div class="ms-ar ms-mono">₹{{ "%.2f"|format(item.amount) }}</div>
