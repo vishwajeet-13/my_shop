@@ -36,12 +36,12 @@ def find_customers(query: str = ""):
 def add_customer(customer_name: str, mobile_no: str = ""):
 	require("Customer", "create")
 	customer_name = (customer_name or "").strip()
-	mobile_no = "".join(ch for ch in (mobile_no or "") if ch.isdigit() or ch == "+")
+	mobile_no = "".join(ch for ch in (mobile_no or "") if ch.isdigit())[-10:]
 	if not customer_name:
 		frappe.throw(_("Customer needs a name"))
 
-	if mobile_no:
-		existing = frappe.db.get_value("Customer", {"mobile_no": mobile_no}, "name")
+	if len(mobile_no) == 10:
+		existing = frappe.db.get_value("Customer", {"mobile_no": ["like", f"%{mobile_no}"]}, "name")
 		if existing:
 			return _customer_card(existing)
 

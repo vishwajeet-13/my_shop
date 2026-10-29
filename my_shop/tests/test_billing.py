@@ -94,6 +94,14 @@ class TestBilling(IntegrationTestCase):
 		again = khata.add_customer("Asha Ben", mobile)
 		self.assertEqual(first["name"], again["name"])
 
+	def test_add_customer_reuses_mobile_written_with_country_code(self):
+		mobile = "7" + frappe.generate_hash(length=9).translate(str.maketrans("abcdef", "123456"))[:9]
+		first = khata.add_customer("Meena", mobile)
+		again = khata.add_customer("Meena", f"+91 {mobile[:5]} {mobile[5:]}")
+		self.assertEqual(first["name"], again["name"])
+		frappe.db.set_value("Customer", first["name"], "mobile_no", f"+91{mobile}")
+		self.assertEqual(khata.add_customer("Meena", mobile)["name"], first["name"])
+
 	def test_find_customers_by_mobile(self):
 		mobile = "8" + frappe.generate_hash(length=9).translate(str.maketrans("abcdef", "123456"))[:9]
 		name = khata.add_customer("Ravi", mobile)["name"]
