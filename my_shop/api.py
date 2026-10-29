@@ -68,7 +68,8 @@ def transcribe(audio: str, audio_format: str = "webm"):
 		f"It may be English, Hindi or Hinglish. Items this shop sells: {names}. "
 		"If an item is said by one of its other names in brackets, write the main name instead. "
 		"Leave out filler words like theek hai, haan, bas. Keep a spoken price with its word, like 14 wala. "
-		"Reply with only the order text, or nothing if no order was spoken."
+		"First write HEARD: and the exact words you hear, in their own language, or HEARD: - if no clear words are spoken. "
+		"Then on a new line write ORDER: and the order text, using only items that are in what you heard, or ORDER: - if there is no order."
 	)
 	try:
 		reply = make_post_request(
@@ -82,7 +83,8 @@ def transcribe(audio: str, audio_format: str = "webm"):
 		)
 	except Exception:
 		frappe.throw(_("Could not hear the order. Try again or type it."))
-	return reply["choices"][0]["message"]["content"].strip()
+	order = (reply["choices"][0]["message"]["content"] or "").rpartition("ORDER:")[2].strip()
+	return "" if order == "-" else order
 
 
 @frappe.whitelist()
