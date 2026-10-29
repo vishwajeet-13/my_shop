@@ -61,8 +61,12 @@ async function call(method, args) {
   }
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
+    if (res.status === 401 || (res.status === 403 && !/user_id=(?!Guest)/.test(document.cookie))) {
+      location.reload();
+      throw new Error("Your login has expired. Opening the login page…");
+    }
     const messages = JSON.parse(body._server_messages || "[]")
-      .map((m) => JSON.parse(m).message);
+      .map((m) => new DOMParser().parseFromString(JSON.parse(m).message, "text/html").body.textContent);
     throw new Error(messages.join("\n") || body.exception || "Request failed");
   }
   return body.message;
