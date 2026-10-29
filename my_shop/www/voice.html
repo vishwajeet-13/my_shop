@@ -435,8 +435,9 @@ function recalc() {
   const who = bill.customer ? " · " + bill.customer.customer_name : "";
   byId("meta").textContent = (bill.lines.length ? `${count} item${count === 1 ? "" : "s"}` : "Ready") + who + (bill.discount ? ` · ${money(bill.discount)} off` : "");
   const overDiscount = bill.discount > subtotal;
-  byId("go").disabled = !bill.lines.some((l) => l.qty > 0) || overDiscount;
-  byId("go").textContent = overDiscount ? "Discount is more than the bill" : bill.lines.length ? `Charge ${money(bill.payable)}` : "Charge";
+  const noRate = bill.lines.find((l) => l.qty > 0 && !l.rate);
+  byId("go").disabled = !bill.lines.some((l) => l.qty > 0) || overDiscount || !!noRate;
+  byId("go").textContent = overDiscount ? "Discount is more than the bill" : noRate ? `Add a rate for ${noRate.item_name}` : bill.lines.length ? `Charge ${money(bill.payable)}` : "Charge";
   refreshQr();
   Store.saveDraft(bill);
 }
