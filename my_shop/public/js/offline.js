@@ -233,6 +233,7 @@
 
 	const DATA_KEY = "my_shop.offline_data";
 	const OUTBOX_KEY = "my_shop.outbox";
+	const DRAFT_KEY = "my_shop.draft";
 
 	function read(key, fallback) {
 		try {
@@ -320,6 +321,8 @@
 		parseAndMatch,
 		saveData: (data) => write(DATA_KEY, data),
 		loadData: () => read(DATA_KEY, null),
+		saveDraft: (bill) => write(DRAFT_KEY, bill),
+		loadDraft: () => read(DRAFT_KEY, null),
 		outbox,
 		localDate,
 		newRef,
