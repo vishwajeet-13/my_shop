@@ -11,7 +11,10 @@ from my_shop.payments import CASH, PAYMENT_MODES, UDHAAR, record_payment, requir
 
 COMMON_UOMS = ("Nos", "Kg", "Meter", "Litre", "Packet", "Box", "Dozen")
 OFFLINE_DAYS = 30
-VOICE_MODELS = ["google/gemini-3.5-flash-lite", "openai/gpt-audio-mini"]
+VOICE_MODELS = {
+	"google/gemini-3.5-flash-lite": {},
+	"qwen/qwen3.8-omni-flash": {"reasoning": {"enabled": False}},
+}
 
 
 def _settings():
@@ -69,19 +72,25 @@ def transcribe(audio: str, audio_format: str = "webm"):
 		"If an item is said by one of its other names in brackets, write the main name instead. "
 		"Leave out filler words like theek hai, haan, bas. Keep a spoken price with its word, like 14 wala. "
 		"First write HEARD: and the exact words you hear, in their own language, or HEARD: - if no clear words are spoken. "
-		"Then on a new line write ORDER: and the order text, using only items that are in what you heard, or ORDER: - if there is no order."
+		"Then on a new line write ORDER: and the order text, using only items that are in what you heard, or ORDER: - if there is no order. "
+		"Reply with only these two lines."
 	)
-	try:
-		reply = make_post_request(
-			"https://openrouter.ai/api/v1/chat/completions",
-			headers={"Authorization": f"Bearer {frappe.conf.openrouter_key}"},
-			json={"models": VOICE_MODELS, "messages": [{"role": "user", "content": [
-				{"type": "text", "text": prompt},
-				{"type": "input_audio", "input_audio": {"data": audio, "format": audio_format}},
-			]}]},
-			timeout=30,
-		)
-	except Exception:
+	messages = [{"role": "user", "content": [
+		{"type": "text", "text": prompt},
+		{"type": "input_audio", "input_audio": {"data": audio, "format": audio_format}},
+	]}]
+	for model, options in VOICE_MODELS.items():
+		try:
+			reply = make_post_request(
+				"https://openrouter.ai/api/v1/chat/completions",
+				headers={"Authorization": f"Bearer {frappe.conf.openrouter_key}"},
+				json={"model": model, **options, "messages": messages},
+				timeout=20,
+			)
+			break
+		except Exception:
+			continue
+	else:
 		frappe.throw(_("Could not hear the order. Try again or type it."))
 	order = (reply["choices"][0]["message"]["content"] or "").rpartition("ORDER:")[2].strip()
 	return "" if order == "-" else order
