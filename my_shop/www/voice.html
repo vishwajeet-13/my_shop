@@ -97,7 +97,7 @@ async function hear(blob, mimeType) {
   mic.disabled = true;
   byId("tx").placeholder = "Hearing…";
   try {
-    const text = await call("transcribe", { audio: await base64(blob), audio_format: mimeType.includes("mp4") ? "m4a" : "webm" });
+    const text = blob && await call("transcribe", { audio: await base64(blob), audio_format: mimeType.includes("mp4") ? "m4a" : "webm" });
     if (text) { byId("tx").value = text; await addOrder(text); }
     else setError("Didn't catch that. Tap the mic and speak again.");
   } catch (e) {
@@ -126,7 +126,7 @@ if (VOICE_MODEL && window.MediaRecorder) {
       analyser.getFloatTimeDomainData(samples);
       const level = Math.sqrt(samples.reduce((sum, v) => sum + v * v, 0) / samples.length);
       floor = Math.min(floor, level);
-      if (level > Math.max(0.02, floor * 3)) spokeAt = Date.now();
+      if (level > Math.max(0.02, floor * 3)) spokeAt = rec.spoke = Date.now();
       const quiet = spokeAt ? Date.now() - spokeAt > 1500 : Date.now() - started > 8000;
       if (quiet || Date.now() - started > 30000) rec.stop();
     }, 100);
@@ -161,7 +161,7 @@ if (VOICE_MODEL && window.MediaRecorder) {
     rec.onstop = () => {
       recorder = null;
       byId("mic").classList.remove("live");
-      hear(new Blob(chunks, { type: rec.mimeType }), rec.mimeType);
+      hear(rec.spoke && new Blob(chunks, { type: rec.mimeType }), rec.mimeType);
     };
     rec.start();
     stopOnSilence(rec);
