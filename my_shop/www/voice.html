@@ -61,6 +61,7 @@ async function call(method, args) {
   }
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
+    if (res.status >= 500 && !body.exc_type) throw new Offline("The server is not answering");
     if (res.status === 401 || (res.status === 403 && !/user_id=(?!Guest)/.test(document.cookie))) {
       location.reload();
       throw new Error("Your login has expired. Opening the login page…");
