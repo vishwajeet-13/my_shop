@@ -126,7 +126,21 @@ class TestMatchItem(UnitTestCase):
 		self.assertEqual(match_item("toor dal", items)["item_code"], "Toor Dal")
 
 	def test_misheard_phrase_suggests_closest(self):
-		self.assertEqual(suggest_items("hammar", self.items)[0]["item_code"], "Claw Hammer")
+		items = [
+			{"name": "Claw Hammer", "item_name": "Claw Hammer", "description": "Claw Hammer, hathoda, hammer", "stock_uom": "Nos"},
+			*self.items[1:],
+		]
+		self.assertEqual([s["item_code"] for s in suggest_items("hammar", items)], ["Claw Hammer"])
+
+	def test_unrelated_word_suggests_nothing(self):
+		items = [
+			{"name": "Kapde Dhone Ka Powder", "item_name": "Kapde Dhone Ka Powder", "description": "detergent, surf, surf excel, tide", "stock_uom": "Packet"},
+			{"name": "Bartan Sabun", "item_name": "Bartan Sabun", "description": "vim bar, dishwash bar", "stock_uom": "Nos"},
+			{"name": "Coffee", "item_name": "Coffee", "description": "nescafe, bru", "stock_uom": "Packet"},
+			{"name": "Good Knight", "item_name": "Good Knight", "description": "good night, mosquito coil", "stock_uom": "Packet"},
+		]
+		self.assertEqual(suggest_items("nimbu", items), [])
+		self.assertEqual([s["item_code"] for s in suggest_items("goodnite", items)], ["Good Knight"])
 
 
 class TestWhatsappLink(UnitTestCase):

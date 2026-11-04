@@ -48,7 +48,7 @@
 	const GLUED_QTY_UNITS = new Set(["kg", "kgs", "kilo", "l", "ltr", "litre", "litres", "g", "gm", "gms", "ml"]);
 
 	const MATCH_THRESHOLD = 0.34;
-	const SUGGEST_THRESHOLD = 0.12;
+	const SUGGEST_THRESHOLD = 0.23;
 	const AMBIGUOUS_MARGIN = 0.05;
 
 	function normalise(text) {
