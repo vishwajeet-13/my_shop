@@ -88,7 +88,6 @@ class TestParseTranscript(UnitTestCase):
 			],
 		)
 
-
 	def test_spoken_total_is_marked(self):
 		self.assertEqual(
 			parse_transcript("3 kg phali 60 rupaye, 2 maggi 14 wala, phali 30 rupay wali, 60rs moongfali"),
