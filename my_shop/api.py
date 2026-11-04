@@ -72,7 +72,9 @@ def transcribe(audio: str, audio_format: str = "webm"):
 		"If an item is said by one of its other names in brackets, write the main name instead. "
 		"Leave out filler words like theek hai, haan, bas. Keep a spoken price with its word, like 14 wala. "
 		"First write HEARD: and the exact words you hear, in their own language, or HEARD: - if no clear words are spoken. "
-		"Then on a new line write ORDER: and the order text, using only items that are in what you heard, or ORDER: - if there is no order. "
+		"Then on a new line write ORDER: and the order, items separated by commas, each written as quantity, unit, item name, "
+		"then any spoken price with its word, like: 2 kg Aata, 1 packet Maggi, 3 kg Moongfali 60 rupaye, 1 Maggi 14 wala. "
+		"Use only items that are in what you heard, or write ORDER: - if there is no order. "
 		"Reply with only these two lines."
 	)
 	messages = [{"role": "user", "content": [
