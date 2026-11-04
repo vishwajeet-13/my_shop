@@ -3,7 +3,7 @@ import re
 import frappe
 from frappe import _
 from frappe.integrations.utils import make_post_request
-from frappe.utils import flt, getdate, now, nowdate, strip_html_tags
+from frappe.utils import cint, flt, getdate, now, nowdate, strip_html_tags
 
 from my_shop.install import CLIENT_REF
 from my_shop.parser import get_shop_items, parse_and_match
@@ -45,7 +45,8 @@ def _rates(item_codes: list) -> dict:
 def preview(transcript: str):
 	"""What we heard, matched against the catalogue. Creates nothing."""
 	require("Sales Invoice", "create")
-	result = parse_and_match(transcript, _settings().item_group)
+	settings = _settings()
+	result = parse_and_match(transcript, settings.item_group, settings.price_is_total)
 
 	suggestions = [s for u in result["unmatched"] for s in u["suggestions"]]
 	rates = _rates([r["item_code"] for r in result["rows"] + suggestions])
@@ -256,6 +257,7 @@ def offline_data():
 		"currency": frappe.db.get_default("currency") or "INR",
 		"shop_name": settings.shop_name,
 		"upi_id": settings.upi_id,
+		"price_is_total": settings.price_is_total,
 		"fetched_at": now(),
 	}
 
@@ -319,7 +321,7 @@ SPEECH_LANGUAGES = ("en-IN", "hi-IN", "en-US", "en-GB")
 
 
 @frappe.whitelist()
-def save_app_settings(shop_name: str, upi_id: str = "", speech_lang: str = "en-IN"):
+def save_app_settings(shop_name: str, upi_id: str = "", speech_lang: str = "en-IN", price_is_total: bool = False):
 	require("Shop Voice Settings", "write")
 	if speech_lang not in SPEECH_LANGUAGES:
 		frappe.throw(_("Unknown speech language {0}").format(speech_lang))
@@ -331,5 +333,6 @@ def save_app_settings(shop_name: str, upi_id: str = "", speech_lang: str = "en-I
 	settings.shop_name = (shop_name or "").strip() or settings.shop_name
 	settings.upi_id = upi_id
 	settings.speech_lang = speech_lang
+	settings.price_is_total = cint(price_is_total)
 	settings.save()
-	return {"shop_name": settings.shop_name, "upi_id": settings.upi_id, "speech_lang": settings.speech_lang}
+	return {"shop_name": settings.shop_name, "upi_id": settings.upi_id, "speech_lang": settings.speech_lang, "price_is_total": settings.price_is_total}

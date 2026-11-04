@@ -30,7 +30,9 @@ BUMPS = {"sawa": 0.25, "saade": 0.5, "sade": 0.5, "paune": -0.25}
 
 SEPARATORS = {"and", "aur", "plus"}
 
-RATE_WORDS = {"wala", "wali", "wale", "waala", "waali", "waale", "rupay", "rupaye", "rupee", "rupees", "rs"}
+WALA_WORDS = {"wala", "wali", "wale", "waala", "waali", "waale"}
+RUPEE_WORDS = {"rupay", "rupaye", "rupee", "rupees", "rs"}
+RATE_WORDS = WALA_WORDS | RUPEE_WORDS
 
 # words that carry no meaning for matching
 STOPWORDS = {
@@ -72,7 +74,7 @@ def _as_number(token: str):
 def _unglue(token: str) -> list[str]:
 	"""Split "2kg" into "2", "kg". Sizes like "10mm" stay whole."""
 	match = re.fullmatch(r"(\d+(?:\.\d+)?)([a-z]+)", token)
-	return [match[1], match[2]] if match and match[2] in GLUED_QTY_UNITS else [token]
+	return [match[1], match[2]] if match and match[2] in GLUED_QTY_UNITS | RUPEE_WORDS else [token]
 
 
 def _combine(previous: int, current: int) -> int:
@@ -89,6 +91,7 @@ def parse_transcript(transcript: str) -> list[dict]:
 	Words before a number with no quantity of their own are ignored, so "bhaiya 1 hammer" is one hammer.
 	An item with no quantity before "aur", a comma, or the end of the order means qty 1.
 	"maggi 14 wala" adds "rate": 14 and means qty 1 when no quantity is said.
+	"phali 60 rupaye" also adds "total": True, as the price may be for the whole line.
 	"""
 	transcript = (transcript or "").replace(",", " and ")
 	tokens = [part for token in _normalise(transcript).split() for part in _unglue(token)]
@@ -96,9 +99,11 @@ def parse_transcript(transcript: str) -> list[dict]:
 	qty = None
 	bump = 0
 	rate = None
+	total = False
 	words = []
 
 	def close(default=None):
+		nonlocal total
 		phrase = " ".join(w for w in words if w not in STOPWORDS)
 		unit = None
 		while True:
@@ -114,13 +119,16 @@ def parse_transcript(transcript: str) -> list[dict]:
 				"qty": count / 1000 if unit else count,
 				"phrase": phrase,
 				**({"rate": rate} if rate else {}),
+				**({"total": True} if rate and total else {}),
 				**({"unit": unit} if unit else {}),
 			})
+		total = False
 
 	for index, token in enumerate(tokens):
 		value = _as_number(token)
 		if value is not None and index + 1 < len(tokens) and tokens[index + 1] in RATE_WORDS:
 			rate = value
+			total = tokens[index + 1] in RUPEE_WORDS and not WALA_WORDS.intersection(tokens[index + 2 : index + 3])
 			if words:
 				close()
 				qty, words, bump, rate = None, [], 0, None
@@ -210,7 +218,12 @@ def suggest_items(phrase: str, items: list[dict], limit: int = 3) -> list[dict]:
 	]
 
 
-def parse_and_match(transcript: str, item_group: str | None = None) -> dict:
+def _spoken_rate(segment: dict, qty: float, price_is_total: bool):
+	rate = segment.get("rate")
+	return rate / qty if price_is_total and segment.get("total") and qty else rate
+
+
+def parse_and_match(transcript: str, item_group: str | None = None, price_is_total: bool = False) -> dict:
 	"""Full pipeline: transcript in, matched rows plus anything we could not find."""
 	items = get_shop_items(item_group)
 	rows, unmatched = [], []
@@ -219,9 +232,10 @@ def parse_and_match(transcript: str, item_group: str | None = None) -> dict:
 		match = match_item(segment["phrase"], items)
 		if match:
 			qty = segment["qty"] if segment.get("unit") in (None, match["uom"]) else 1
-			rows.append({**match, "qty": qty, "heard": segment["phrase"], "rate": segment.get("rate")})
+			rows.append({**match, "qty": qty, "heard": segment["phrase"], "rate": _spoken_rate(segment, qty, price_is_total)})
 		else:
-			suggestions = [{**s, "rate": segment.get("rate")} for s in suggest_items(segment["phrase"], items)]
+			rate = _spoken_rate(segment, segment["qty"], price_is_total)
+			suggestions = [{**s, "rate": rate} for s in suggest_items(segment["phrase"], items)]
 			unmatched.append({**segment, "suggestions": suggestions})
 
 	return {"rows": rows, "unmatched": unmatched}

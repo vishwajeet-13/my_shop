@@ -9,6 +9,8 @@
   .ms-form .ms-label { margin-top: 18px; }
   .ms-form .ms-label:first-of-type { margin-top: 0; }
   .ms-help { margin: 6px 2px 0; color: var(--muted); font-size: 13px; }
+  .ms-check { display: flex; align-items: center; gap: 10px; }
+  .ms-check input { width: 20px; height: 20px; accent-color: var(--ink); }
   .ms-saved { margin-top: 12px; color: var(--green); font-weight: 600; }
   .ms-saved:empty { display: none; }
   .ms-install[hidden], .ms-install [hidden] { display: none; }
@@ -40,6 +42,12 @@
       <option value="{{ lang }}"{% if lang == settings.speech_lang %} selected{% endif %}>{{ {"en-IN": "English (India) + Hinglish", "hi-IN": "Hindi", "en-US": "English (US)", "en-GB": "English (UK)"}[lang] }}</option>
       {% endfor %}
     </select>
+
+    <label class="ms-label ms-check" for="price_is_total">
+      <input type="checkbox" id="price_is_total"{% if settings.price_is_total %} checked{% endif %}>
+      Spoken price is the line total
+    </label>
+    <p class="ms-help">Say “3 kg phali 60 rupaye” to bill 3 kg at ₹20. “14 wala” still means the price of one.</p>
 
     {% if not can_edit %}
     <p class="ms-help">Only the owner can change these settings.</p>
@@ -87,7 +95,7 @@ byId("save") && byId("form").addEventListener("submit", async (event) => {
     const res = await fetch("/api/method/my_shop.api.save_app_settings", {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-Frappe-CSRF-Token": CSRF },
-      body: JSON.stringify({ shop_name: byId("shop_name").value, upi_id: byId("upi_id").value, speech_lang: byId("speech_lang").value }),
+      body: JSON.stringify({ shop_name: byId("shop_name").value, upi_id: byId("upi_id").value, speech_lang: byId("speech_lang").value, price_is_total: byId("price_is_total").checked }),
     });
     const body = await res.json();
     if (!res.ok) {

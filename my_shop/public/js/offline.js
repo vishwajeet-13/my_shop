@@ -27,7 +27,9 @@
 
 	const SEPARATORS = new Set(["and", "aur", "plus"]);
 
-	const RATE_WORDS = new Set(["wala", "wali", "wale", "waala", "waali", "waale", "rupay", "rupaye", "rupee", "rupees", "rs"]);
+	const WALA_WORDS = new Set(["wala", "wali", "wale", "waala", "waali", "waale"]);
+	const RUPEE_WORDS = new Set(["rupay", "rupaye", "rupee", "rupees", "rs"]);
+	const RATE_WORDS = new Set([...WALA_WORDS, ...RUPEE_WORDS]);
 
 	const STOPWORDS = new Set([
 		"and", "aur", "plus", "then", "also", "add", "please", "ka", "ke", "ki",
@@ -62,7 +64,7 @@
 
 	function unglue(token) {
 		const match = /^([0-9]+(?:\.[0-9]+)?)([a-z]+)$/.exec(token);
-		return match && GLUED_QTY_UNITS.has(match[2]) ? [match[1], match[2]] : [token];
+		return match && (GLUED_QTY_UNITS.has(match[2]) || RUPEE_WORDS.has(match[2])) ? [match[1], match[2]] : [token];
 	}
 
 	function combine(previous, current) {
@@ -77,6 +79,7 @@
 		let qty = null;
 		let bump = 0;
 		let rate = null;
+		let total = false;
 		let words = [];
 
 		function close(fallback = null) {
@@ -89,13 +92,15 @@
 				phrase = phrase.slice(space + 1);
 			}
 			const count = qty || (rate ? 1 : fallback);
-			if (count && phrase) segments.push({ qty: unit ? count / 1000 : count, phrase, ...(rate ? { rate } : {}), ...(unit ? { unit } : {}) });
+			if (count && phrase) segments.push({ qty: unit ? count / 1000 : count, phrase, ...(rate ? { rate } : {}), ...(rate && total ? { total: true } : {}), ...(unit ? { unit } : {}) });
+			total = false;
 		}
 
 		tokens.forEach((token, index) => {
 			const value = asNumber(token);
 			if (value !== null && RATE_WORDS.has(tokens[index + 1])) {
 				rate = value;
+				total = RUPEE_WORDS.has(tokens[index + 1]) && !WALA_WORDS.has(tokens[index + 2]);
 				if (words.length) {
 					close();
 					qty = null;
@@ -215,16 +220,21 @@
 			.map(([, item]) => ({ item_code: item.name, item_name: item.item_name, rate: item.rate || 0 }));
 	}
 
-	function parseAndMatch(transcript, items) {
+	function spokenRate(segment, qty, priceIsTotal) {
+		return priceIsTotal && segment.total && qty ? segment.rate / qty : segment.rate;
+	}
+
+	function parseAndMatch(transcript, items, priceIsTotal = false) {
 		const rows = [], unmatched = [];
 		for (const segment of parseTranscript(transcript)) {
 			const match = matchItem(segment.phrase, items);
 			if (match) {
 				const item = items.find((i) => i.name === match.item_code);
 				const qty = !segment.unit || segment.unit === match.uom ? segment.qty : 1;
-				rows.push({ ...match, qty, heard: segment.phrase, rate: segment.rate || item.rate || 0 });
+				rows.push({ ...match, qty, heard: segment.phrase, rate: spokenRate(segment, qty, priceIsTotal) || item.rate || 0 });
 			} else {
-				const suggestions = suggestItems(segment.phrase, items).map((s) => ({ ...s, rate: segment.rate || s.rate }));
+				const rate = spokenRate(segment, segment.qty, priceIsTotal);
+				const suggestions = suggestItems(segment.phrase, items).map((s) => ({ ...s, rate: rate || s.rate }));
 				unmatched.push({ ...segment, suggestions });
 			}
 		}
