@@ -15,7 +15,13 @@
   "section_payments",
   "upi_id",
   "column_break_2",
-  "taxes_and_charges"
+  "taxes_and_charges",
+  "section_voice_usage",
+  "usage_daily",
+  "usage_weekly",
+  "column_break_3",
+  "usage_monthly",
+  "usage_total"
  ],
  "fields": [
   {
@@ -84,6 +90,43 @@
    "label": "Sales Tax Template",
    "options": "Sales Taxes and Charges Template",
    "description": "Applied to every voice bill. Leave empty for no tax."
+  },
+  {
+   "fieldname": "section_voice_usage",
+   "fieldtype": "Section Break",
+   "label": "Voice AI Usage (OpenRouter, USD)"
+  },
+  {
+   "fieldname": "usage_daily",
+   "fieldtype": "Float",
+   "label": "Today",
+   "precision": "4",
+   "read_only": 1
+  },
+  {
+   "fieldname": "usage_weekly",
+   "fieldtype": "Float",
+   "label": "This Week",
+   "precision": "4",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "usage_monthly",
+   "fieldtype": "Float",
+   "label": "This Month",
+   "precision": "4",
+   "read_only": 1
+  },
+  {
+   "fieldname": "usage_total",
+   "fieldtype": "Float",
+   "label": "All Time",
+   "precision": "4",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,

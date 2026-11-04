@@ -240,3 +240,19 @@ class TestSettingsDefaults(IntegrationTestCase):
 		self.assertTrue(settings.company)
 		self.assertEqual(settings.default_customer, WALK_IN_CUSTOMER)
 		self.assertTrue(frappe.db.exists("Customer", WALK_IN_CUSTOMER))
+
+	def test_opening_settings_shows_voice_ai_usage(self):
+		from unittest.mock import patch
+
+		key = {"data": {"usage_daily": 0.01, "usage_weekly": 0.05, "usage_monthly": 0.2, "usage": 1.5}}
+		target = "my_shop.my_shop.doctype.shop_voice_settings.shop_voice_settings.make_get_request"
+		settings = frappe.get_single("Shop Voice Settings")
+		with patch(target, return_value=key):
+			settings.onload()
+		self.assertEqual(
+			[settings.usage_daily, settings.usage_weekly, settings.usage_monthly, settings.usage_total], [0.01, 0.05, 0.2, 1.5]
+		)
+
+		with patch(target, side_effect=Exception("down")), patch("frappe.log_error") as log_error:
+			frappe.get_single("Shop Voice Settings").onload()
+		log_error.assert_called_once_with("OpenRouter usage check failed")
