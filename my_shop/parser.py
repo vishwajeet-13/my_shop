@@ -31,7 +31,7 @@ BUMPS = {"sawa": 0.25, "saade": 0.5, "sade": 0.5, "paune": -0.25}
 SEPARATORS = {"and", "aur", "plus"}
 
 WALA_WORDS = {"wala", "wali", "wale", "waala", "waali", "waale"}
-RUPEE_WORDS = {"rupay", "rupaye", "rupee", "rupees", "rs"}
+RUPEE_WORDS = {"rupay", "rupaye", "rupaya", "rupee", "rupees", "rs"}
 RATE_WORDS = WALA_WORDS | RUPEE_WORDS
 
 # words that carry no meaning for matching

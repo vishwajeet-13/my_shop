@@ -99,6 +99,12 @@ class TestParseTranscript(UnitTestCase):
 			],
 		)
 
+	def test_rupaya_is_a_price_word(self):
+		self.assertEqual(
+			parse_transcript("1 kg moongfali 60 rupaya"),
+			[{"qty": 1, "phrase": "moongfali", "rate": 60, "total": True}],
+		)
+
 	def test_spoken_total_splits_into_rate(self):
 		from unittest.mock import patch
 
