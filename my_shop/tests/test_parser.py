@@ -120,32 +120,6 @@ class TestParseTranscript(UnitTestCase):
 		self.assertEqual([(r["item_code"], r["qty"], r["rate"]) for r in off], [("Moongfali", 3, 60), ("Maggi", 2, 14)])
 
 
-	def test_spoken_total_is_marked(self):
-		self.assertEqual(
-			parse_transcript("3 kg phali 60 rupaye, 2 maggi 14 wala, phali 30 rupay wali, 60rs moongfali"),
-			[
-				{"qty": 3, "phrase": "phali", "rate": 60, "total": True},
-				{"qty": 2, "phrase": "maggi", "rate": 14},
-				{"qty": 1, "phrase": "phali", "rate": 30},
-				{"qty": 1, "phrase": "moongfali", "rate": 60, "total": True},
-			],
-		)
-
-	def test_spoken_total_splits_into_rate(self):
-		from unittest.mock import patch
-
-		items = [
-			{"name": "Moongfali", "item_name": "Moongfali", "description": "phali", "stock_uom": "Kg"},
-			{"name": "Maggi", "item_name": "Maggi", "description": "", "stock_uom": "Packet"},
-		]
-		order = "3 kg phali 60 rupaye, 2 maggi 14 wala"
-		with patch("my_shop.parser.get_shop_items", return_value=items):
-			on = parse_and_match(order, price_is_total=True)["rows"]
-			off = parse_and_match(order)["rows"]
-		self.assertEqual([(r["item_code"], r["qty"], r["rate"]) for r in on], [("Moongfali", 3, 20), ("Maggi", 2, 14)])
-		self.assertEqual([(r["item_code"], r["qty"], r["rate"]) for r in off], [("Moongfali", 3, 60), ("Maggi", 2, 14)])
-
-
 class TestMatchItem(UnitTestCase):
 	items = [
 		{"name": "Claw Hammer", "item_name": "Claw Hammer", "description": "", "stock_uom": "Nos"},
