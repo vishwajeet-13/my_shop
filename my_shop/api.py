@@ -70,11 +70,12 @@ def transcribe(audio: str, audio_format: str = "webm"):
 		"and fractions as decimals (aadha 0.5, dedh 1.5, paav 0.25). "
 		f"It may be English, Hindi or Hinglish. Items this shop sells: {names}. "
 		"If an item is said by one of its other names in brackets, write the main name instead. "
+		"If something said is not in this list, keep it and write it as you heard it; never swap it for a different item. "
 		"Leave out filler words like theek hai, haan, bas. Keep a spoken price with its word, like 14 wala. "
 		"First write HEARD: and the exact words you hear, in their own language, or HEARD: - if no clear words are spoken. "
 		"Then on a new line write ORDER: and the order, items separated by commas, each written as quantity, unit, item name, "
 		"then any spoken price with its word, like: 2 kg Aata, 1 packet Maggi, 3 kg Moongfali 60 rupaye, 1 Maggi 14 wala. "
-		"Use only items that are in what you heard, or write ORDER: - if there is no order. "
+		"Include every item in what you heard, and nothing else, or write ORDER: - if there is no order. "
 		"Reply with only these two lines."
 	)
 	messages = [{"role": "user", "content": [

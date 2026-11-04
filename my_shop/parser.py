@@ -52,7 +52,7 @@ SMALL_UNITS = {"gram": "Kg", "grams": "Kg", "gm": "Kg", "gms": "Kg", "g": "Kg", 
 GLUED_QTY_UNITS = {"kg", "kgs", "kilo", "l", "ltr", "litre", "litres", "g", "gm", "gms", "ml"}
 
 MATCH_THRESHOLD = 0.34
-SUGGEST_THRESHOLD = 0.12
+SUGGEST_THRESHOLD = 0.23
 AMBIGUOUS_MARGIN = 0.05
 
 
