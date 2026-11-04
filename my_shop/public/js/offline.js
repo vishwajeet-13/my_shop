@@ -28,7 +28,7 @@
 	const SEPARATORS = new Set(["and", "aur", "plus"]);
 
 	const WALA_WORDS = new Set(["wala", "wali", "wale", "waala", "waali", "waale"]);
-	const RUPEE_WORDS = new Set(["rupay", "rupaye", "rupee", "rupees", "rs"]);
+	const RUPEE_WORDS = new Set(["rupay", "rupaye", "rupaya", "rupee", "rupees", "rs"]);
 	const RATE_WORDS = new Set([...WALA_WORDS, ...RUPEE_WORDS]);
 
 	const STOPWORDS = new Set([
