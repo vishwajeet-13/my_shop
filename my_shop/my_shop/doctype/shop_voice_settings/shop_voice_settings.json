@@ -11,6 +11,7 @@
   "column_break_1",
   "item_group",
   "speech_lang",
+  "price_is_total",
   "section_payments",
   "upi_id",
   "column_break_2",
@@ -54,6 +55,13 @@
    "label": "Speech Language",
    "options": "en-IN\nhi-IN\nen-US\nen-GB",
    "default": "en-IN"
+  },
+  {
+   "default": "0",
+   "description": "Say \"3 kg phali 60 rupaye\" to bill 3 kg at \u20b920. \"14 wala\" still means the price of one.",
+   "fieldname": "price_is_total",
+   "fieldtype": "Check",
+   "label": "Spoken Price Is the Line Total"
   },
   {
    "fieldname": "section_payments",

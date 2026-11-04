@@ -257,7 +257,7 @@ async function preview(transcript) {
     if (!(e instanceof Offline)) throw e;
     const data = Store.loadData();
     if (!data) throw new Error("You are offline. Open the app once with internet so it can bill offline.");
-    return { ...Store.parseAndMatch(transcript, data.items), uoms: data.uoms, currency: data.currency };
+    return { ...Store.parseAndMatch(transcript, data.items, data.price_is_total), uoms: data.uoms, currency: data.currency };
   }
 }
 
