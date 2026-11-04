@@ -3,7 +3,7 @@ import re
 import frappe
 from frappe import _
 from frappe.integrations.utils import make_post_request
-from frappe.utils import cint, flt, getdate, now, nowdate, strip_html_tags
+from frappe.utils import cint, flt, getdate, now, nowdate
 
 from my_shop.install import CLIENT_REF
 from my_shop.parser import get_shop_items, parse_and_match
@@ -60,16 +60,12 @@ def preview(transcript: str):
 
 @frappe.whitelist(methods=["POST"])
 def transcribe(audio: str, audio_format: str = "webm"):
-	"""Speech to text, with the shop's item names as spelling hints."""
+	"""Speech to text."""
 	require("Sales Invoice", "create")
-	names = "; ".join(
-		f"{i.item_name} (also: {other})" if (other := strip_html_tags(i.description or "")) not in ("", i.item_name) else i.item_name
-		for i in get_shop_items(_settings().item_group)
-	)
 	prompt = (
 		"Write down this shop order exactly as spoken, in Roman letters, with numbers as digits "
 		"and fractions as decimals (aadha 0.5, dedh 1.5, paav 0.25). "
-		f"It may be English, Hindi or Hinglish. Items this shop sells: {names}. "
+		"It may be English, Hindi or Hinglish. Items this shop sells: . "
 		"If an item is said by one of its other names in brackets, write the main name instead. "
 		"If something said is not in this list, keep it and write it as you heard it; never swap it for a different item. "
 		"Leave out filler words like theek hai, haan, bas. Keep a spoken price with its word, like 14 wala. "
