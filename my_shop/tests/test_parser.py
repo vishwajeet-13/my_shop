@@ -89,6 +89,32 @@ class TestParseTranscript(UnitTestCase):
 		)
 
 
+	def test_spoken_total_is_marked(self):
+		self.assertEqual(
+			parse_transcript("3 kg phali 60 rupaye, 2 maggi 14 wala, phali 30 rupay wali, 60rs moongfali"),
+			[
+				{"qty": 3, "phrase": "phali", "rate": 60, "total": True},
+				{"qty": 2, "phrase": "maggi", "rate": 14},
+				{"qty": 1, "phrase": "phali", "rate": 30},
+				{"qty": 1, "phrase": "moongfali", "rate": 60, "total": True},
+			],
+		)
+
+	def test_spoken_total_splits_into_rate(self):
+		from unittest.mock import patch
+
+		items = [
+			{"name": "Moongfali", "item_name": "Moongfali", "description": "phali", "stock_uom": "Kg"},
+			{"name": "Maggi", "item_name": "Maggi", "description": "", "stock_uom": "Packet"},
+		]
+		order = "3 kg phali 60 rupaye, 2 maggi 14 wala"
+		with patch("my_shop.parser.get_shop_items", return_value=items):
+			on = parse_and_match(order, price_is_total=True)["rows"]
+			off = parse_and_match(order)["rows"]
+		self.assertEqual([(r["item_code"], r["qty"], r["rate"]) for r in on], [("Moongfali", 3, 20), ("Maggi", 2, 14)])
+		self.assertEqual([(r["item_code"], r["qty"], r["rate"]) for r in off], [("Moongfali", 3, 60), ("Maggi", 2, 14)])
+
+
 class TestMatchItem(UnitTestCase):
 	items = [
 		{"name": "Claw Hammer", "item_name": "Claw Hammer", "description": "", "stock_uom": "Nos"},
@@ -151,6 +177,7 @@ class TestOfflineParserParity(UnitTestCase):
 		"aadha kilo wire nail paune do kg washer sawa hammer 1.5 kg wire nail",
 		"2kg wire nail, 0.5kg washer, 3 nut bolt m8",
 		"2 washer 14 wala, hammer 30 rupay wali, 32 wali hammer aur 1 kg wire nail",
+		"3 kg wire nail 60 rupaye, 60rs washer aur 2 washer 14 wala",
 		"250 gram wire nail, 500ml washer, 100g hammer",
 		"2 washer aur hammer, wire nail",
 		"nail",
@@ -193,3 +220,31 @@ class TestOfflineParserParity(UnitTestCase):
 			for t in self.transcripts
 		]
 		self.assertEqual(json.loads(out.stdout), expected)
+
+	def test_js_spoken_total_matches_python(self):
+		import json
+		import shutil
+		import subprocess
+		from pathlib import Path
+		from unittest.mock import patch
+
+		node = shutil.which("node")
+		if not node:
+			self.skipTest("node is not installed")
+
+		order = "3 kg wire nail 60 rupaye, 60rs washer aur 2 washer 14 wala"
+		script = Path(__file__).parents[1] / "public" / "js" / "offline.js"
+		runner = (
+			"const o = require(process.argv[1]);"
+			"const {order, items} = JSON.parse(require('fs').readFileSync(0, 'utf8'));"
+			"console.log(JSON.stringify(o.parseAndMatch(order, items, true).rows.map((r) => [r.item_code, r.qty, r.rate])));"
+		)
+		out = subprocess.run(
+			[node, "-e", runner, str(script)],
+			input=json.dumps({"order": order, "items": self.items}),
+			capture_output=True, text=True, check=True,
+		)
+		with patch("my_shop.parser.get_shop_items", return_value=self.items):
+			rows = parse_and_match(order, price_is_total=True)["rows"]
+		self.assertEqual(json.loads(out.stdout), [[r["item_code"], r["qty"], r["rate"]] for r in rows])
+		self.assertEqual(json.loads(out.stdout), [["Wire Nail", 3, 20], ["Washer", 1, 60], ["Washer", 2, 14]])
